@@ -25,3 +25,4 @@ hs_err_pid*
 # Added
 .idea/
 .DS_Store
+gen-java

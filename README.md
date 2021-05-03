@@ -19,3 +19,7 @@ A simple database based on ThssDB
 - [ ] 最终提交（展示准备）：6 月 7 日（周一）
 
 提交内容：逐步完成系统的各个模块，逐次提交源代码和设计文档，最终提交需要提交设计文档、用户文档、展示 PPT 及源代码。
+
+# 运行方法
+
+在 Windows 平台下执行 `run_thrift.bat` 脚本，生成接口文件。linux 和 mac 平台参考脚本内容。
