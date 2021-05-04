@@ -23,3 +23,17 @@ A simple database based on ThssDB
 # 运行方法
 
 在 Windows 平台下执行 `run_thrift.bat` 脚本，生成接口文件。linux 和 mac 平台参考脚本内容。
+
+# 代码架构
+
+```
+client
+|__client           客户端启动文件，接收命令
+rpc.thrift          thrift 自动生成的抽象类
+server
+|__client           服务端启动文件，分配 handler
+service
+|__IServiceHandler  继承 thrift 生成的抽象类，业务的具体实现
+utils
+|__Global           默认常量
+```
