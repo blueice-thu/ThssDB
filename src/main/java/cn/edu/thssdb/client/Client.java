@@ -1,7 +1,6 @@
 package cn.edu.thssdb.client;
 
-import cn.edu.thssdb.rpc.thrift.GetTimeReq;
-import cn.edu.thssdb.rpc.thrift.IService;
+import cn.edu.thssdb.rpc.thrift.*;
 import cn.edu.thssdb.utils.Global;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -59,18 +58,49 @@ public class Client {
       boolean open = true;
       while (true) {
         print(Global.CLI_PREFIX);
-        String msg = SCANNER.nextLine();
+
+        // Use ";" to cut several statements
+        String[] msgList = SCANNER.nextLine().trim().split(";");
+
         long startTime = System.currentTimeMillis();
-        switch (msg.trim()) {
-          case Global.SHOW_TIME:
-            getTime();
-            break;
-          case Global.QUIT:
-            open = false;
-            break;
-          default:
-            println("Invalid statements!");
-            break;
+        for (String msg : msgList) {
+          switch (msg.trim()) {
+            // TODO: Add more commands here
+            case "":
+              break;
+            case Global.DISCONNECT:
+              disconnect();
+              break;
+            case Global.HELP:
+              showHelp();
+              break;
+            case Global.QUIT:
+              open = false;
+              break;
+            case Global.SHOW_TIME:
+              getTime();
+              break;
+            default:
+              // Need more arguments
+              String[] elements = msg.split(" ");
+              int numElem = elements.length;
+              switch (elements[0]) {
+                case Global.CONNECT:
+                  if (numElem == 1) {
+                    connect("", "");
+                  }
+                  else if (numElem == 3) {
+                    connect(elements[1], elements[2]);
+                  }
+                  else {
+                    showInvalid();
+                  }
+                  break;
+                default:
+                  showInvalid();
+                  break;
+              }
+          }
         }
         long endTime = System.currentTimeMillis();
         println("It costs " + (endTime - startTime) + " ms.");
@@ -91,6 +121,35 @@ public class Client {
     } catch (TException e) {
       logger.error(e.getMessage());
     }
+  }
+
+  private static void connect(String username, String password) {
+    // TODO
+    println("Receive command: connect");
+    ConnectReq req = new ConnectReq(username, password);
+    try {
+      ConnectResp resp = client.connect(req);
+      println(resp.toString());
+    } catch (TException e) {
+      logger.error(e.getMessage());
+    }
+  }
+
+  private static void disconnect() {
+    // TODO
+    println("Receive command: disconnect");
+    DisconnetReq req = new DisconnetReq();
+    try {
+      DisconnetResp resp = client.disconnect(req);
+      println(resp.toString());
+    } catch (TException e) {
+      logger.error(e.getMessage());
+    }
+  }
+
+  private static void executeStatement() {
+    // TODO
+    println("Receive command: executeStatement");
   }
 
   static Options createOptions() {
@@ -133,9 +192,13 @@ public class Client {
     return cmd;
   }
 
+  static void showInvalid() {
+    println("Invalid statements!");
+    showHelp();
+  }
+
   static void showHelp() {
-    // TODO
-    println("DO IT YOURSELF");
+    println(Global.HELP_TEXT);
   }
 
   static void echoStarting() {

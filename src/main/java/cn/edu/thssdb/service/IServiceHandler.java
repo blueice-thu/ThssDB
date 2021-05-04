@@ -17,6 +17,15 @@ import java.util.Date;
 
 public class IServiceHandler implements IService.Iface {
 
+  private int sessionId = 0;
+
+  private boolean isValidAccount(String username, String password) {
+    if (username.equals(Global.DEFAULT_USERNAME) && password.equals(Global.DEFAULT_PASSWORD)) {
+      return true;
+    }
+    return false;
+  }
+
   @Override
   public GetTimeResp getTime(GetTimeReq req) throws TException {
     GetTimeResp resp = new GetTimeResp();
@@ -28,18 +37,38 @@ public class IServiceHandler implements IService.Iface {
   @Override
   public ConnectResp connect(ConnectReq req) throws TException {
     // TODO
-    return null;
+    ConnectResp resp = new ConnectResp();
+    String username = req.getUsername();
+    String password = req.getPassword();
+
+    resp.setSessionId(sessionId);
+
+    if (isValidAccount(username, password)) {
+      resp.setStatus(new Status(Global.SUCCESS_CODE));
+    }
+    else {
+      resp.setStatus(new Status(Global.FAILURE_CODE));
+    }
+
+    return resp;
   }
 
   @Override
   public DisconnetResp disconnect(DisconnetReq req) throws TException {
     // TODO
-    return null;
+    long sessionId = req.getSessionId();
+    Status status = new Status(Global.SUCCESS_CODE);
+    DisconnetResp resp = new DisconnetResp();
+    resp.setStatus(status);
+    return resp;
   }
 
   @Override
   public ExecuteStatementResp executeStatement(ExecuteStatementReq req) throws TException {
     // TODO
-    return null;
+    Status status = new Status(Global.FAILURE_CODE);
+    boolean isAbort = false;
+    boolean hasResult = false;
+    return new ExecuteStatementResp(status, isAbort, hasResult);
   }
 }
