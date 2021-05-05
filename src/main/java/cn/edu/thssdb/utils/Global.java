@@ -27,4 +27,6 @@ public class Global {
           "\thelp           Get help information.";
 
   public static final String S_URL_INTERNAL = "jdbc:default:connection";
+
+  public static String PERSIST_PATH = "data/";
 }
