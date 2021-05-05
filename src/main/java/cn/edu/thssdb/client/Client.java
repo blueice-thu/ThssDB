@@ -41,6 +41,8 @@ public class Client {
   private static IService.Client client;
   private static CommandLine commandLine;
 
+  private static long sessionId = -1;
+
   public static void main(String[] args) {
     commandLine = parseCmd(args);
     if (commandLine.hasOption(HELP_ARGS)) {
@@ -125,11 +127,15 @@ public class Client {
 
   private static void connect(String username, String password) {
     // TODO
-    println("Receive command: connect");
     ConnectReq req = new ConnectReq(username, password);
     try {
       ConnectResp resp = client.connect(req);
-      println(resp.toString());
+      if (resp.getStatus().getCode() == Global.SUCCESS_CODE) {
+        sessionId = resp.getSessionId();
+      }
+      else {
+        println("Connect failed:" + resp.getStatus().getMsg());
+      }
     } catch (TException e) {
       logger.error(e.getMessage());
     }
@@ -137,11 +143,15 @@ public class Client {
 
   private static void disconnect() {
     // TODO
-    println("Receive command: disconnect");
     DisconnetReq req = new DisconnetReq();
     try {
       DisconnetResp resp = client.disconnect(req);
-      println(resp.toString());
+      if (resp.getStatus().getCode() == Global.SUCCESS_CODE) {
+        sessionId = -1;
+      }
+      else {
+        println("Disconnect failed:" + resp.getStatus().getMsg());
+      }
     } catch (TException e) {
       logger.error(e.getMessage());
     }

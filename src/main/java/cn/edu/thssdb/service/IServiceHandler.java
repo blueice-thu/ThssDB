@@ -14,17 +14,13 @@ import cn.edu.thssdb.utils.Global;
 import org.apache.thrift.TException;
 
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 public class IServiceHandler implements IService.Iface {
 
-  private int sessionId = 0;
-
-  private boolean isValidAccount(String username, String password) {
-    if (username.equals(Global.DEFAULT_USERNAME) && password.equals(Global.DEFAULT_PASSWORD)) {
-      return true;
-    }
-    return false;
-  }
+  private long nextSessionId = 0;
+  private Set<Long> abortSessions = new HashSet<>();
 
   @Override
   public GetTimeResp getTime(GetTimeReq req) throws TException {
@@ -41,7 +37,7 @@ public class IServiceHandler implements IService.Iface {
     String username = req.getUsername();
     String password = req.getPassword();
 
-    resp.setSessionId(sessionId);
+    resp.setSessionId(nextSessionId++);
 
     if (isValidAccount(username, password)) {
       resp.setStatus(new Status(Global.SUCCESS_CODE));
@@ -57,7 +53,15 @@ public class IServiceHandler implements IService.Iface {
   public DisconnetResp disconnect(DisconnetReq req) throws TException {
     // TODO
     long sessionId = req.getSessionId();
-    Status status = new Status(Global.SUCCESS_CODE);
+    Status status = new Status();
+    if (isValidSessionId(sessionId)) {
+      status.setCode(Global.SUCCESS_CODE);
+      abortSessions.add(sessionId);
+    }
+    else {
+      status.setCode(Global.FAILURE_CODE);
+      status.setMsg("Invalid sessionId");
+    }
     DisconnetResp resp = new DisconnetResp();
     resp.setStatus(status);
     return resp;
@@ -70,5 +74,16 @@ public class IServiceHandler implements IService.Iface {
     boolean isAbort = false;
     boolean hasResult = false;
     return new ExecuteStatementResp(status, isAbort, hasResult);
+  }
+
+  private boolean isValidAccount(String username, String password) {
+    if (username.equals(Global.DEFAULT_USERNAME) && password.equals(Global.DEFAULT_PASSWORD)) {
+      return true;
+    }
+    return false;
+  }
+
+  private boolean isValidSessionId(long sessionId) {
+    return sessionId >= 0 && sessionId < nextSessionId && !abortSessions.contains(sessionId);
   }
 }
