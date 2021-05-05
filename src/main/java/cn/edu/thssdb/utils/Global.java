@@ -20,7 +20,8 @@ public class Global {
   public static final String SHOW_TIME = "show time";
 
   public static final String HELP_TEXT = "Usage:\n" +
-          "\tconnect <username> <password>\n" +
+          "\tconnect [<username> <password>]\n" +
+          "\tdisconnect\n" +
           "\tshow time      Get current time. \"Tue May 04 22:58:49 CST 2021\"\n" +
           "\tquit           Close connection and quit client.\n" +
           "\thelp           Get help information.";

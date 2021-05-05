@@ -69,11 +69,31 @@ public class IServiceHandler implements IService.Iface {
 
   @Override
   public ExecuteStatementResp executeStatement(ExecuteStatementReq req) throws TException {
-    // TODO
-    Status status = new Status(Global.FAILURE_CODE);
+    String statement = req.getStatement();
+    long sessionId = req.getSessionId();
+
+    ExecuteStatementResp resp = new ExecuteStatementResp();
+    Status status = new Status();
+    resp.setStatus(status);
     boolean isAbort = false;
     boolean hasResult = false;
-    return new ExecuteStatementResp(status, isAbort, hasResult);
+
+    if (!isValidSessionId(sessionId)) {
+      status.setCode(Global.FAILURE_CODE);
+      status.setMsg("Invalid sessionId.");
+      resp.setIsAbort(false);
+      resp.setHasResult(false);
+      return resp;
+    }
+
+    // TODO
+    status.setCode(Global.FAILURE_CODE);
+    status.setMsg("\"" + statement +"\" is not a command.");
+
+    resp.setIsAbort(isAbort);
+    resp.setHasResult(hasResult);
+
+    return resp;
   }
 
   private boolean isValidAccount(String username, String password) {

@@ -99,7 +99,7 @@ public class Client {
                   }
                   break;
                 default:
-                  showInvalid();
+                  executeStatement(msg);
                   break;
               }
           }
@@ -157,9 +157,23 @@ public class Client {
     }
   }
 
-  private static void executeStatement() {
+  private static void executeStatement(String statement) {
     // TODO
-    println("Receive command: executeStatement");
+    ExecuteStatementReq req = new ExecuteStatementReq();
+    req.setStatement(statement);
+    req.setSessionId(sessionId);
+    try {
+      ExecuteStatementResp resp = client.executeStatement(req);
+      if (resp.getStatus().getCode() == Global.SUCCESS_CODE) {
+        println(resp.getStatus().toString());
+      }
+      else {
+        println("Execute statement \"" + statement + "\" failed: " + resp.getStatus().getMsg());
+      }
+    } catch (TException e) {
+      logger.error(e.getMessage());
+    }
+
   }
 
   static Options createOptions() {
