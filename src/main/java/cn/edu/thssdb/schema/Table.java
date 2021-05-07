@@ -3,8 +3,10 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.exception.DuplicateKeyException;
 import cn.edu.thssdb.exception.KeyNotExistException;
 import cn.edu.thssdb.index.BPlusTree;
+import cn.edu.thssdb.utils.Global;
 import cn.edu.thssdb.utils.Pair;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -137,13 +139,67 @@ public class Table implements Iterable<Row> {
     }
   }
 
-  private void serialize() {
-    // TODO
+  private String getBasePersistDir() {
+    return Global.PERSIST_PATH + File.separator + databaseName + File.separator + "data";
+  }
+
+  private String getTablePersistDir() {
+    return getBasePersistDir() + File.separator + tableName;
+  }
+
+  private boolean serialize() {
+    // T O D O
+    try {
+      File f = new File(getBasePersistDir());
+      if (!f.exists() && !f.mkdirs()) {
+        System.err.println("Failed while serializing table and dump it to disk: mkdir failed.");
+        return false;
+      }
+
+      ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream(getTablePersistDir()));
+      for (Row row: this) { // this is iterable
+        objectOutputStream.writeObject(row);
+      }
+      objectOutputStream.close();
+      return true;
+    } catch (IOException e) {
+      System.err.println("Failed while serializing table: IO Exception.");
+      return false;
+    }
   }
 
   private ArrayList<Row> deserialize() {
-    // TODO
-    return null;
+    // T O D O
+    try {
+      File f = new File(getTablePersistDir());
+      if (!f.exists()) { // no such file
+        return new ArrayList<>();
+      }
+
+      ArrayList<Row> rows = new ArrayList<>();
+      FileInputStream fileInputStream = new FileInputStream(f);
+      ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
+      while (fileInputStream.available() > 0) {
+        rows.add((Row) objectInputStream.readObject());
+      }
+      objectInputStream.close();
+      fileInputStream.close();
+      return rows;
+    } catch (IOException e) {
+      System.err.println("Failed while deserializing table: IO Exception.");
+    } catch (ClassNotFoundException e) {
+      System.err.println("Failed while deserializing table: ClassNotFoundException.");
+    }
+    return new ArrayList<>();
+  }
+
+  boolean persist() {
+    try {
+      lock.readLock().lock();
+      return serialize();
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   private class TableIterator implements Iterator<Row> {
