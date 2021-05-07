@@ -1,5 +1,7 @@
 package cn.edu.thssdb.schema;
 
+import cn.edu.thssdb.exception.DuplicateKeyException;
+import cn.edu.thssdb.exception.KeyNotExistException;
 import cn.edu.thssdb.index.BPlusTree;
 import cn.edu.thssdb.utils.Pair;
 
@@ -17,11 +19,28 @@ public class Table implements Iterable<Row> {
   private int primaryIndex;
 
   public Table(String databaseName, String tableName, Column[] columns) {
-    // TODO
+    // T O D O
     this.databaseName = databaseName;
     this.tableName = tableName;
     this.columns = new ArrayList<>();
     this.columns.addAll(Arrays.asList(columns));
+    this.index = new BPlusTree<>();
+    this.lock = new ReentrantReadWriteLock();
+
+    // init primary index
+    this.primaryIndex = -1;
+    int len = this.columns.size();
+    for (int i = 0; i < len; i++) {
+      if (this.columns.get(i).isPrimary()) {
+        this.primaryIndex = i;
+        break;
+      }
+    }
+    if (this.primaryIndex == -1) {
+      // no primary, set one
+      this.columns.get(0).setPrimary();
+      this.primaryIndex = 0;
+    }
   }
 
   private void recover() {
@@ -40,7 +59,7 @@ public class Table implements Iterable<Row> {
     }
   }
 
-  public void insert(Row row) throws Exception {
+  public void insert(Row row) throws DuplicateKeyException {
     // TODO
     Entry primary_key = row.getEntries().get(primaryIndex);
     boolean has_exist;
@@ -61,12 +80,12 @@ public class Table implements Iterable<Row> {
       }
     }
     else{
-      throw new Exception("Row has existed!");
+      throw new DuplicateKeyException;
     }
 
   }
 
-  public void delete(Row row) throws Exception {
+  public void delete(Row row) throws KeyNotExistException {
     // TODO
     Entry primary_key = row.getEntries().get(primaryIndex);
     boolean has_exist;
@@ -88,7 +107,7 @@ public class Table implements Iterable<Row> {
       }
     }
     else{
-      throw new Exception("Row has not existed!");
+      throw new KeyNotExistException;
     }
   }
 
