@@ -50,7 +50,7 @@ public class Table implements Iterable<Row> {
     try {
       lock.writeLock().lock();
       ArrayList<Row> rows = deserialize();
-      if(rows!=null){
+      if(!rows.isEmpty()){
         for (Row row: rows) {
           index.put(row.getEntries().get(primaryIndex), row);
         }
@@ -82,7 +82,7 @@ public class Table implements Iterable<Row> {
       }
     }
     else{
-      throw new DuplicateKeyException;
+      throw new DuplicateKeyException();
     }
 
   }
@@ -109,7 +109,7 @@ public class Table implements Iterable<Row> {
       }
     }
     else{
-      throw new KeyNotExistException;
+      throw new KeyNotExistException();
     }
   }
 
