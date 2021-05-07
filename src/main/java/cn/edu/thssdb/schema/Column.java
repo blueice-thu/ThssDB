@@ -17,6 +17,16 @@ public class Column implements Comparable<Column> {
     this.maxLength = maxLength;
   }
 
+  public String getName() { return name; }
+
+  public ColumnType getType() { return type; }
+
+  public int getPrimary() { return primary; }
+
+  public boolean isNotNull() { return notNull; }
+
+  public int getMaxLength() { return maxLength; }
+
   @Override
   public int compareTo(Column e) {
     return name.compareTo(e.name);
