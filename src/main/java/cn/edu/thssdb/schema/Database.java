@@ -26,21 +26,13 @@ public class Database {
 
   private void persist() {
     // TODO
-    String folderPath = Global.PERSIST_PATH + this.name;
-
-    File folder = new File(folderPath);
-    if (!folder.exists() || folder.isFile()) {
-      boolean createSuccess = folder.mkdir();
-      if (!createSuccess) {
-        System.out.println("Create folder \"" + folderPath + "\" failed!");
-      }
-    }
-
     for (Map.Entry<String, Table> entry : tables.entrySet()) {
-      String tableName = entry.getKey();
       Table table = entry.getValue();
+      if (!table.checkMakePersistDir()) {
+        System.err.println("Create folder \"" + table.getPersistDir() + "\" failed!");
+      }
       try {
-        FileOutputStream fileOut = new FileOutputStream(folderPath + "/" + tableName + ".meta");
+        FileOutputStream fileOut = new FileOutputStream(table.getMetaPersistFile());
         ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
         objectOut.writeObject(table.columns);
         objectOut.close();

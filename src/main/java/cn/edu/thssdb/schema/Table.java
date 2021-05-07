@@ -84,7 +84,6 @@ public class Table implements Iterable<Row> {
     else{
       throw new DuplicateKeyException();
     }
-
   }
 
   public void delete(Row row) throws KeyNotExistException {
@@ -139,24 +138,33 @@ public class Table implements Iterable<Row> {
     }
   }
 
-  private String getBasePersistDir() {
-    return Global.PERSIST_PATH + File.separator + databaseName + File.separator + "data";
+  // Judge whether the folder "data/{databaseName}/{tableName}" exists
+  public String getPersistDir() {
+    return Global.PERSIST_PATH + File.separator + databaseName + File.separator + tableName;
   }
 
-  private String getTablePersistDir() {
-    return getBasePersistDir() + File.separator + tableName;
+  public String getRowsPersistFile() {
+    return getPersistDir() + File.separator + tableName + Global.PERSIST_TABLE_ROWS_SUFFIX;
+  }
+
+  public String getMetaPersistFile() {
+    return getPersistDir() + File.separator + tableName + Global.PERSIST_TABLE_META_SUFFIX;
+  }
+
+  public boolean checkMakePersistDir() {
+    File tableFolder = new File(getPersistDir());
+    return (tableFolder.exists() && !tableFolder.isFile()) || tableFolder.mkdirs();
   }
 
   private boolean serialize() {
     // T O D O
     try {
-      File f = new File(getBasePersistDir());
-      if (!f.exists() && !f.mkdirs()) {
+      if (checkMakePersistDir()) {
         System.err.println("Failed while serializing table and dump it to disk: mkdir failed.");
         return false;
       }
 
-      ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream(getTablePersistDir()));
+      ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream(getRowsPersistFile()));
       for (Row row: this) { // this is iterable
         objectOutputStream.writeObject(row);
       }
@@ -171,13 +179,14 @@ public class Table implements Iterable<Row> {
   private ArrayList<Row> deserialize() {
     // T O D O
     try {
-      File f = new File(getTablePersistDir());
-      if (!f.exists()) { // no such file
+      // Judge whether file "data/{databaseName}/tables/{tableName}.data" exists
+      File tableFile = new File(getRowsPersistFile());
+      if (!tableFile.exists() || tableFile.isDirectory()) {
         return new ArrayList<>();
       }
 
       ArrayList<Row> rows = new ArrayList<>();
-      FileInputStream fileInputStream = new FileInputStream(f);
+      FileInputStream fileInputStream = new FileInputStream(tableFile);
       ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
       while (fileInputStream.available() > 0) {
         rows.add((Row) objectInputStream.readObject());

@@ -27,15 +27,16 @@ public class Column implements Comparable<Column> {
 
   public int getMaxLength() { return maxLength; }
 
-  @Override
-  public int compareTo(Column e) {
-    return name.compareTo(e.name);
-  }
-
   public String toString() {
     return name + ',' + type + ',' + primary + ',' + notNull + ',' + maxLength;
   }
 
   public boolean isPrimary() { return primary != 0; }
+
   public void setPrimary() { this.primary = 1; }
+
+  @Override
+  public int compareTo(Column e) {
+    return name.compareTo(e.name);
+  }
 }

@@ -28,5 +28,7 @@ public class Global {
 
   public static final String S_URL_INTERNAL = "jdbc:default:connection";
 
-  public static String PERSIST_PATH = "data/";
+  public static String PERSIST_PATH = "data";
+  public static String PERSIST_TABLE_META_SUFFIX = ".meta";
+  public static String PERSIST_TABLE_ROWS_SUFFIX = ".data";
 }
