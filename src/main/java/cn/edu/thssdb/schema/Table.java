@@ -26,18 +26,96 @@ public class Table implements Iterable<Row> {
 
   private void recover() {
     // TODO
+    try {
+      lock.writeLock().lock();
+      ArrayList<Row> rows = deserialize();
+      if(rows!=null){
+        for (Row row: rows) {
+          index.put(row.getEntries().get(primaryIndex), row);
+        }
+      }
+    }
+    finally {
+      lock.writeLock().unlock();
+    }
   }
 
-  public void insert() {
+  public void insert(Row row) throws Exception {
     // TODO
+    Entry primary_key = row.getEntries().get(primaryIndex);
+    boolean has_exist;
+    try {
+      lock.readLock().lock();
+      has_exist = index.contains(primary_key);
+    }
+    finally {
+      lock.readLock().unlock();
+    }
+    if(!has_exist){
+      try {
+        lock.writeLock().lock();
+        index.put(primary_key, row);
+      }
+      finally {
+        lock.writeLock().unlock();
+      }
+    }
+    else{
+      throw new Exception("Row has existed!");
+    }
+
   }
 
-  public void delete() {
+  public void delete(Row row) throws Exception {
     // TODO
+    Entry primary_key = row.getEntries().get(primaryIndex);
+    boolean has_exist;
+    try {
+      lock.readLock().lock();
+      has_exist = index.contains(primary_key);
+    }
+    finally {
+      lock.readLock().unlock();
+    }
+    if(has_exist){
+      try {
+        lock.writeLock().lock();
+        Entry entry = row.getEntries().get(primaryIndex);
+        index.remove(entry);
+      }
+      finally {
+        lock.writeLock().unlock();
+      }
+    }
+    else{
+      throw new Exception("Row has not existed!");
+    }
   }
 
-  public void update() {
+  public void update(Row row) throws Exception {
     // TODO
+    Entry primary_key = row.getEntries().get(primaryIndex);
+    boolean has_exist;
+    try {
+      lock.readLock().lock();
+      has_exist = index.contains(primary_key);
+    }
+    finally {
+      lock.readLock().unlock();
+    }
+    if(has_exist){
+      try {
+        lock.writeLock().lock();
+        Entry entry = row.getEntries().get(primaryIndex);
+        index.update(entry, row);
+      }
+      finally {
+        lock.writeLock().unlock();
+      }
+    }
+    else{
+      throw new Exception("Row has not existed!");
+    }
   }
 
   private void serialize() {
