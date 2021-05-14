@@ -24,22 +24,26 @@ public class Database {
     recover();
   }
 
-  private void persist() {
+  private void persist(Table table) {
     // TODO
+    if (!table.checkMakePersistDir()) {
+      System.err.println("Create folder \"" + table.getPersistDir() + "\" failed!");
+    }
+    try {
+      FileOutputStream fileOut = new FileOutputStream(table.getMetaPersistFile());
+      ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
+      objectOut.writeObject(table.columns);
+      objectOut.close();
+      fileOut.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void persistAll() {
     for (Map.Entry<String, Table> entry : tables.entrySet()) {
       Table table = entry.getValue();
-      if (!table.checkMakePersistDir()) {
-        System.err.println("Create folder \"" + table.getPersistDir() + "\" failed!");
-      }
-      try {
-        FileOutputStream fileOut = new FileOutputStream(table.getMetaPersistFile());
-        ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
-        objectOut.writeObject(table.columns);
-        objectOut.close();
-        fileOut.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+      persist(table);
     }
   }
 
@@ -51,7 +55,7 @@ public class Database {
     }
     Table table = new Table(this.name, name, columns);
     tables.put(name, table);
-    persist();
+    persist(table);
   }
 
   public void drop() {
@@ -70,5 +74,17 @@ public class Database {
 
   public void quit() {
     // TODO
+  }
+
+  public ArrayList<String> getTableNameList() {
+    ArrayList<String> tableNames = new ArrayList<>();
+    for (Map.Entry<String, Table> entry : tables.entrySet()) {
+      tableNames.add(entry.getValue().getTableName());
+    }
+    return tableNames;
+  }
+
+  public String getName() {
+    return name;
   }
 }

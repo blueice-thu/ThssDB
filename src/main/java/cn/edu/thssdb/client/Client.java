@@ -58,7 +58,7 @@ public class Client {
       protocol = new TBinaryProtocol(transport);
       client = new IService.Client(protocol);
       boolean open = true;
-      while (true) {
+      do {
         print(Global.CLI_PREFIX);
 
         // Use ";" to cut several statements
@@ -90,11 +90,9 @@ public class Client {
                 case Global.CONNECT:
                   if (numElem == 1) {
                     connect("", "");
-                  }
-                  else if (numElem == 3) {
+                  } else if (numElem == 3) {
                     connect(elements[1], elements[2]);
-                  }
-                  else {
+                  } else {
                     showInvalid();
                   }
                   break;
@@ -104,12 +102,11 @@ public class Client {
               }
           }
         }
+
         long endTime = System.currentTimeMillis();
         println("It costs " + (endTime - startTime) + " ms.");
-        if (!open) {
-          break;
-        }
-      }
+
+      } while (open);
       transport.close();
     } catch (TTransportException e) {
       logger.error(e.getMessage());

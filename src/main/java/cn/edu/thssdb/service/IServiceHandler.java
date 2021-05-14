@@ -10,17 +10,19 @@ import cn.edu.thssdb.rpc.thrift.GetTimeReq;
 import cn.edu.thssdb.rpc.thrift.GetTimeResp;
 import cn.edu.thssdb.rpc.thrift.IService;
 import cn.edu.thssdb.rpc.thrift.Status;
+import cn.edu.thssdb.schema.Manager;
+import cn.edu.thssdb.schema.Table;
 import cn.edu.thssdb.utils.Global;
 import org.apache.thrift.TException;
 
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 public class IServiceHandler implements IService.Iface {
 
   private long nextSessionId = 0;
+  private Manager databaseManager = new Manager();
   private Set<Long> abortSessions = new HashSet<>();
+  private HashMap<Long, Session> sessions = new HashMap<>();
 
   @Override
   public GetTimeResp getTime(GetTimeReq req) throws TException {
@@ -37,9 +39,9 @@ public class IServiceHandler implements IService.Iface {
     String username = req.getUsername();
     String password = req.getPassword();
 
-    resp.setSessionId(nextSessionId++);
-
     if (isValidAccount(username, password)) {
+      sessions.put(nextSessionId, new Session(nextSessionId));
+      resp.setSessionId(nextSessionId++);
       resp.setStatus(new Status(Global.SUCCESS_CODE));
     }
     else {
@@ -57,6 +59,7 @@ public class IServiceHandler implements IService.Iface {
     if (isValidSessionId(sessionId)) {
       status.setCode(Global.SUCCESS_CODE);
       abortSessions.add(sessionId);
+      sessions.remove(sessionId);
     }
     else {
       status.setCode(Global.FAILURE_CODE);
@@ -86,9 +89,40 @@ public class IServiceHandler implements IService.Iface {
       return resp;
     }
 
+    Session session = sessions.get(sessionId);
+
+    switch (statement) {
+      case Global.SHOW_TABLES: {
+        if (session.getCurrentDatabase() == null) {
+          status.setCode(Global.FAILURE_CODE);
+          status.setMsg("No database selected");
+          break;
+        }
+        StringJoiner joiner = new StringJoiner("\n");
+        ArrayList<String> tableNames = session.getCurrentDatabase().getTableNameList();
+        for (String tableName : tableNames)
+          joiner.add(tableName);
+        status.setCode(Global.SUCCESS_CODE);
+        resp.setTables(joiner.toString());
+        break;
+      }
+      case Global.SHOW_DATABASES: {
+        // TODO
+        StringJoiner joiner = new StringJoiner("\n");
+
+        break;
+      }
+      default:
+        status.setCode(Global.FAILURE_CODE);
+        status.setMsg("Unknown command: \"" + statement + "\"");
+        resp.setIsAbort(false);
+        resp.setHasResult(false);
+        return resp;
+    }
+
     // TODO
     status.setCode(Global.FAILURE_CODE);
-    status.setMsg("\"" + statement +"\" is not a command.");
+    status.setMsg("\"" + statement +"\" is not a command");
 
     resp.setIsAbort(isAbort);
     resp.setHasResult(hasResult);

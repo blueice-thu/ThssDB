@@ -15,7 +15,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class Table implements Iterable<Row> {
   ReentrantReadWriteLock lock;
   private String databaseName;
-  public String tableName;
+
+  private String tableName;
   public ArrayList<Column> columns;
   public BPlusTree<Entry, Row> index;
   private int primaryIndex;
@@ -232,5 +233,10 @@ public class Table implements Iterable<Row> {
   @Override
   public Iterator<Row> iterator() {
     return new TableIterator(this);
+  }
+
+  // Getter and Setter
+  public String getTableName() {
+    return tableName;
   }
 }
