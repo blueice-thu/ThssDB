@@ -96,6 +96,14 @@ public class Client {
                     showInvalid();
                   }
                   break;
+                case Global.SHOW:
+                  if (numElem == 2) {
+                    showSomething(elements[1]);
+                  }
+                  else {
+                    showInvalid();
+                  }
+                  break;
                 default:
                   executeStatement(msg);
                   break;
@@ -123,7 +131,6 @@ public class Client {
   }
 
   private static void connect(String username, String password) {
-    // TODO
     ConnectReq req = new ConnectReq(username, password);
     try {
       ConnectResp resp = client.connect(req);
@@ -139,7 +146,6 @@ public class Client {
   }
 
   private static void disconnect() {
-    // TODO
     DisconnetReq req = new DisconnetReq();
     try {
       DisconnetResp resp = client.disconnect(req);
@@ -171,6 +177,23 @@ public class Client {
       logger.error(e.getMessage());
     }
 
+  }
+
+  private static void showSomething(String item) {
+    ShowReq req = new ShowReq();
+    req.setSessionId(sessionId);
+    req.setItem(item);
+    try {
+      ShowResp resp = client.show(req);
+      if (resp.getStatus().getCode() == Global.SUCCESS_CODE) {
+        println(resp.getContents());
+      }
+      else {
+        println(resp.getStatus().toString());
+      }
+    } catch (TException e) {
+      e.printStackTrace();
+    }
   }
 
   static Options createOptions() {

@@ -16,18 +16,18 @@ public class Global {
   public static final String CONNECT = "connect";
   public static final String DISCONNECT = "disconnect";
   public static final String HELP = "show help";
+  public static final String USE = "use";
   public static final String QUIT = "quit";
+  public static final String SHOW = "show";
   public static final String SHOW_TIME = "show time";
-  public static final String SHOW_TABLES = "show tables";
-  public static final String SHOW_DATABASES = "show databases";
 
   public static final String HELP_TEXT = "Usage:\n" +
           "\tconnect [<username> <password>]\n" +
           "\tdisconnect\n" +
-          "\tshow time      Get current time. \"Tue May 04 22:58:49 CST 2021\"\n" +
-          "\tshow tables    Get tables in current database.\n" +
-          "\tquit           Close connection and quit client.\n" +
-          "\thelp           Get help information.";
+          "\tshow time        Get current time. \"Tue May 04 22:58:49 CST 2021\"\n" +
+          "\tshow [tables | databases | help]\n" +
+          "\tquit             Close connection and quit client.\n" +
+          "\thelp             Get help information.";
 
   public static final String S_URL_INTERNAL = "jdbc:default:connection";
 

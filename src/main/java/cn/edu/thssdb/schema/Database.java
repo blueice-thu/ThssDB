@@ -47,6 +47,10 @@ public class Database {
     }
   }
 
+  private void recover() {
+    // TODO
+  }
+
   public void create(String name, Column[] columns) {
     // TODO
     if (tables.containsKey(name)) {
@@ -66,10 +70,6 @@ public class Database {
     // TODO
     QueryResult queryResult = new QueryResult(queryTables);
     return null;
-  }
-
-  private void recover() {
-    // TODO
   }
 
   public void quit() {

@@ -11,6 +11,8 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+
 public class ThssDB {
 
   private static final Logger logger = LoggerFactory.getLogger(ThssDB.class);
@@ -43,6 +45,13 @@ public class ThssDB {
       transport = new TServerSocket(Global.DEFAULT_SERVER_PORT);
       server = new TSimpleServer(new TServer.Args(transport).processor(processor));
       logger.info("Starting ThssDB ...");
+
+      File rootDir = new File(Global.PERSIST_PATH);
+      if (!rootDir.exists() && !rootDir.isDirectory() && !rootDir.mkdir()) {
+        System.err.println("Fail to create data folder: " + Global.PERSIST_PATH);
+        return;
+      }
+
       server.serve();
     } catch (TTransportException e) {
       logger.error(e.getMessage());

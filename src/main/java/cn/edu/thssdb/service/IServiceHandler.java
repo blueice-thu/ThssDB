@@ -1,15 +1,6 @@
 package cn.edu.thssdb.service;
 
-import cn.edu.thssdb.rpc.thrift.ConnectReq;
-import cn.edu.thssdb.rpc.thrift.ConnectResp;
-import cn.edu.thssdb.rpc.thrift.DisconnetReq;
-import cn.edu.thssdb.rpc.thrift.DisconnetResp;
-import cn.edu.thssdb.rpc.thrift.ExecuteStatementReq;
-import cn.edu.thssdb.rpc.thrift.ExecuteStatementResp;
-import cn.edu.thssdb.rpc.thrift.GetTimeReq;
-import cn.edu.thssdb.rpc.thrift.GetTimeResp;
-import cn.edu.thssdb.rpc.thrift.IService;
-import cn.edu.thssdb.rpc.thrift.Status;
+import cn.edu.thssdb.rpc.thrift.*;
 import cn.edu.thssdb.schema.Manager;
 import cn.edu.thssdb.schema.Table;
 import cn.edu.thssdb.utils.Global;
@@ -20,7 +11,7 @@ import java.util.*;
 public class IServiceHandler implements IService.Iface {
 
   private long nextSessionId = 0;
-  private Manager databaseManager = new Manager();
+  private Manager databaseManager = Manager.getInstance();
   private Set<Long> abortSessions = new HashSet<>();
   private HashMap<Long, Session> sessions = new HashMap<>();
 
@@ -71,6 +62,58 @@ public class IServiceHandler implements IService.Iface {
   }
 
   @Override
+  public ShowResp show(ShowReq req) throws TException {
+    long sessionId = req.getSessionId();
+    String item = req.getItem();
+
+    ShowResp resp = new ShowResp();
+    Status status = new Status();
+    resp.setStatus(status);
+
+    if (!isValidSessionId(sessionId)) {
+      status.setCode(Global.FAILURE_CODE);
+      status.setMsg("Invalid sessionId.");
+      return resp;
+    }
+
+    Session session = sessions.get(sessionId);
+
+    switch (item) {
+      case "tables": {
+        if (session.getCurrentDatabase() == null) {
+          status.setCode(Global.FAILURE_CODE);
+          status.setMsg("No database selected");
+          break;
+        }
+        StringJoiner joiner = new StringJoiner("\n");
+        ArrayList<String> tableNames = session.getCurrentDatabase().getTableNameList();
+        for (String tableName : tableNames)
+          joiner.add(tableName);
+        status.setCode(Global.SUCCESS_CODE);
+        resp.setContents(joiner.toString());
+        break;
+      }
+      case "databases": {
+        StringJoiner joiner = new StringJoiner("\n");
+        ArrayList<String> databaseNames = databaseManager.getDatabaseNameList();
+        for (String databaseName : databaseNames)
+          joiner.add(databaseName);
+        status.setCode(Global.SUCCESS_CODE);
+        resp.setContents(joiner.toString());
+        break;
+      }
+      case "help": {
+        status.setCode(Global.SUCCESS_CODE);
+        resp.setContents(Global.HELP_TEXT);
+      }
+      default:
+        status.setCode(Global.FAILURE_CODE);
+        status.setMsg("No such show items: " + item);
+    }
+    return resp;
+  }
+
+  @Override
   public ExecuteStatementResp executeStatement(ExecuteStatementReq req) throws TException {
     String statement = req.getStatement();
     long sessionId = req.getSessionId();
@@ -91,39 +134,53 @@ public class IServiceHandler implements IService.Iface {
 
     Session session = sessions.get(sessionId);
 
-    switch (statement) {
-      case Global.SHOW_TABLES: {
-        if (session.getCurrentDatabase() == null) {
+    String[] elements = statement.split(" ");
+    int numElem = elements.length;
+    switch (elements[0]) {
+      case "use": {
+        if (numElem == 2) {
+          if (databaseManager.hasDatabase(elements[1])) {
+            session.setCurrentDatabase(databaseManager.getDatabase(elements[1]));
+            status.setCode(Global.SUCCESS_CODE);
+          }
+          else {
+            status.setCode(Global.FAILURE_CODE);
+            status.setMsg("No such database: " + elements[1]);
+          }
+        } else {
           status.setCode(Global.FAILURE_CODE);
-          status.setMsg("No database selected");
-          break;
+          status.setMsg("Unknown command: \"" + statement + "\"");
+          return resp;
         }
-        StringJoiner joiner = new StringJoiner("\n");
-        ArrayList<String> tableNames = session.getCurrentDatabase().getTableNameList();
-        for (String tableName : tableNames)
-          joiner.add(tableName);
-        status.setCode(Global.SUCCESS_CODE);
-        resp.setTables(joiner.toString());
-        break;
       }
-      case Global.SHOW_DATABASES: {
-        // TODO
-        StringJoiner joiner = new StringJoiner("\n");
-
-        break;
+      case "create": {
+        if (numElem == 3 && elements[1].equals("database")) {
+          if (!databaseManager.hasDatabase(elements[2])) {
+            status.setCode(Global.FAILURE_CODE);
+            status.setMsg("Database has existed: " + elements[2]);
+          }
+          else {
+            if (databaseManager.createDatabaseIfNotExists(elements[2])) {
+              status.setCode(Global.SUCCESS_CODE);
+            }
+            else {
+              status.setCode(Global.FAILURE_CODE);
+              status.setMsg("Fail to create database: " + elements[2]);
+            }
+          }
+        } else {
+          status.setCode(Global.FAILURE_CODE);
+          status.setMsg("Unknown command: \"" + statement + "\"");
+          return resp;
+        }
       }
-      default:
+      default: {
         status.setCode(Global.FAILURE_CODE);
-        status.setMsg("Unknown command: \"" + statement + "\"");
-        resp.setIsAbort(false);
-        resp.setHasResult(false);
-        return resp;
+        status.setMsg("\"" + statement +"\" is not a command");
+      }
     }
 
     // TODO
-    status.setCode(Global.FAILURE_CODE);
-    status.setMsg("\"" + statement +"\" is not a command");
-
     resp.setIsAbort(isAbort);
     resp.setHasResult(hasResult);
 
@@ -131,10 +188,7 @@ public class IServiceHandler implements IService.Iface {
   }
 
   private boolean isValidAccount(String username, String password) {
-    if (username.equals(Global.DEFAULT_USERNAME) && password.equals(Global.DEFAULT_PASSWORD)) {
-      return true;
-    }
-    return false;
+    return username.equals(Global.DEFAULT_USERNAME) && password.equals(Global.DEFAULT_PASSWORD);
   }
 
   private boolean isValidSessionId(long sessionId) {
