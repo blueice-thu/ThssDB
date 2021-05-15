@@ -7,7 +7,6 @@ import cn.edu.thssdb.utils.Global;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -24,46 +23,60 @@ public class Database {
     recover();
   }
 
-  private void persist(Table table) {
-    // TODO
-    if (!table.checkMakePersistDir()) {
-      System.err.println("Create folder \"" + table.getPersistDir() + "\" failed!");
-    }
+  public boolean persist() {
     try {
-      FileOutputStream fileOut = new FileOutputStream(table.getMetaPersistFile());
-      ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
-      objectOut.writeObject(table.columns);
+      String filename = getMetaPersistFile();
+      ObjectOutputStream objectOut = new ObjectOutputStream(new FileOutputStream(filename));
+      for (Map.Entry<String, Table> tableEntry : tables.entrySet()) {
+        objectOut.writeObject(tableEntry.getValue());
+      }
       objectOut.close();
-      fileOut.close();
     } catch (IOException e) {
       e.printStackTrace();
+      return false;
     }
+    return true;
   }
 
-  private void persistAll() {
-    for (Map.Entry<String, Table> entry : tables.entrySet()) {
-      Table table = entry.getValue();
-      persist(table);
+  public boolean recover() {
+    try {
+      String filename = getMetaPersistFile();
+      ObjectInputStream objectIn = new ObjectInputStream(new FileInputStream(filename));
+      HashMap<String, Table> recoverTables = new HashMap<>();
+      while (objectIn.available() > 0) {
+        Table table = (Table) objectIn.readObject();
+        recoverTables.put(table.getTableName(), table);
+      }
+      tables = recoverTables;
+    } catch (EOFException ignored) {
+    } catch (IOException | ClassNotFoundException e) {
+      e.printStackTrace();
+      return false;
     }
+    return true;
   }
 
-  private void recover() {
-    // TODO
-  }
-
-  public void create(String name, Column[] columns) {
-    // TODO
-    if (tables.containsKey(name)) {
-      System.out.println("Table \"" + name + "\" already exists");
-      return;
+  public boolean create(String tableName, Column[] columns) {
+    if (tables.containsKey(tableName)) {
+      System.err.println("Table \"" + tableName + "\" already exists");
+      return false;
     }
-    Table table = new Table(this.name, name, columns);
-    tables.put(name, table);
-    persist(table);
+    Table table = new Table(this.name, tableName, columns);
+    tables.put(tableName, table);
+    // TODO
+    persist();
+    return true;
   }
 
-  public void drop() {
+  public boolean drop(String tableName) {
+    if (!tables.containsKey(tableName)) {
+      System.err.println("Table \"" + tableName + "\" doesn't exist");
+      return false;
+    }
+    tables.remove(tableName);
     // TODO
+    persist();
+    return true;
   }
 
   public String select(QueryTable[] queryTables) {
@@ -74,6 +87,10 @@ public class Database {
 
   public void quit() {
     // TODO
+    for (Map.Entry<String, Table> tableEntry : tables.entrySet()) {
+      tableEntry.getValue().persist();
+    }
+    persist();
   }
 
   public ArrayList<String> getTableNameList() {
@@ -82,6 +99,13 @@ public class Database {
       tableNames.add(entry.getValue().getTableName());
     }
     return tableNames;
+  }
+
+  private String getMetaPersistFile() throws IOException {
+    String filename = Global.PERSIST_PATH + File.separator + name + File.separator + "tables" + Global.PERSIST_TABLE_META_SUFFIX;
+    File persistFile = new File(filename);
+    if ((!persistFile.exists() || persistFile.isDirectory()) && !persistFile.createNewFile()) return "";
+    return filename;
   }
 
   public String getName() {

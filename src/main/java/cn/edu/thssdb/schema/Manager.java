@@ -20,6 +20,8 @@ public class Manager {
   public Manager() {
     // TODO
     recover();
+    for (Map.Entry<String, Database> databaseEntry : databases.entrySet())
+      databaseEntry.getValue().recover();
   }
 
   public boolean createDatabaseIfNotExists(String databaseName) {
@@ -53,14 +55,14 @@ public class Manager {
       persistFilename = getMetaPersistFile();
       ObjectInputStream objectIn = new ObjectInputStream(new FileInputStream(persistFilename));
 
-      HashMap<String, Database> recoverDatabase = new HashMap<>();
+      HashMap<String, Database> recoverDatabases = new HashMap<>();
       while (objectIn.available() > 0) {
         Database database = (Database) objectIn.readObject();
-        recoverDatabase.put(database.getName(), database);
+        recoverDatabases.put(database.getName(), database);
       }
 
       objectIn.close();
-      databases = recoverDatabase;
+      databases = recoverDatabases;
     } catch (EOFException ignored) {
     } catch (IOException | ClassNotFoundException e) {
       e.printStackTrace();
@@ -80,6 +82,9 @@ public class Manager {
       }
 
       objectOut.close();
+
+      for (Map.Entry<String, Database> databaseEntry : databases.entrySet())
+        databaseEntry.getValue().persist();
     } catch (IOException e) {
       e.printStackTrace();
       return false;
@@ -95,7 +100,7 @@ public class Manager {
     return databases.getOrDefault(databaseName, null);
   }
 
-  public String getMetaPersistFile() throws IOException {
+  private String getMetaPersistFile() throws IOException {
     String filename = Global.PERSIST_PATH + File.separator + "databases" + Global.PERSIST_TABLE_META_SUFFIX;
     File persistFile = new File(filename);
     if ((!persistFile.exists() || persistFile.isDirectory()) && !persistFile.createNewFile()) return "";
