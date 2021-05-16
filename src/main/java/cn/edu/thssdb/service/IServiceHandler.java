@@ -1,6 +1,8 @@
 package cn.edu.thssdb.service;
 
 import cn.edu.thssdb.rpc.thrift.*;
+import cn.edu.thssdb.schema.Column;
+import cn.edu.thssdb.schema.Database;
 import cn.edu.thssdb.schema.Manager;
 import cn.edu.thssdb.schema.Table;
 import cn.edu.thssdb.utils.Global;
@@ -105,6 +107,7 @@ public class IServiceHandler implements IService.Iface {
       case "help": {
         status.setCode(Global.SUCCESS_CODE);
         resp.setContents(Global.HELP_TEXT);
+        break;
       }
       default:
         status.setCode(Global.FAILURE_CODE);
@@ -150,23 +153,86 @@ public class IServiceHandler implements IService.Iface {
         } else {
           status.setCode(Global.FAILURE_CODE);
           status.setMsg("Unknown command: \"" + statement + "\"");
-          return resp;
         }
       }
+      break;
       case "create": {
+        if (numElem == 3 && elements[1].equals("database")) {
+          // create database
+          if (databaseManager.hasDatabase(elements[2])) {
+            status.setCode(Global.FAILURE_CODE);
+            status.setMsg("Database has existed: " + elements[2]);
+            break;
+          }
+          if (databaseManager.createDatabaseIfNotExists(elements[2])) {
+            status.setCode(Global.SUCCESS_CODE);
+          }
+          else {
+            status.setCode(Global.FAILURE_CODE);
+            status.setMsg("Fail to create database: " + elements[2]);
+          }
+        } else if (numElem >= 3 && elements[1].equals("table")) {
+          // create table
+          if (session.getCurrentDatabase() == null) {
+            status.setCode(Global.FAILURE_CODE);
+            status.setMsg("No database selected");
+            break;
+          }
+          String tableName = elements[1];
+          Database database = session.getCurrentDatabase();
+          if (database.hasTable(tableName)) {
+            status.setCode(Global.FAILURE_CODE);
+            status.setMsg("Table already exists: " + tableName);
+            break;
+          }
+          // TODO
+          if (database.create(tableName, null)) {
+            status.setCode(Global.SUCCESS_CODE);
+          }
+          else {
+            status.setCode(Global.FAILURE_CODE);
+            status.setMsg("Fail to create table: " + tableName);
+          }
+        } else {
+          status.setCode(Global.FAILURE_CODE);
+          status.setMsg("Unknown command: \"" + statement + "\"");
+        }
+      }
+      break;
+      case "drop": {
         if (numElem == 3 && elements[1].equals("database")) {
           if (!databaseManager.hasDatabase(elements[2])) {
             status.setCode(Global.FAILURE_CODE);
-            status.setMsg("Database has existed: " + elements[2]);
+            status.setMsg("No such database: " + elements[2]);
+            break;
+          }
+          if (databaseManager.deleteDatabase(elements[2])) {
+            status.setCode(Global.SUCCESS_CODE);
           }
           else {
-            if (databaseManager.createDatabaseIfNotExists(elements[2])) {
-              status.setCode(Global.SUCCESS_CODE);
-            }
-            else {
-              status.setCode(Global.FAILURE_CODE);
-              status.setMsg("Fail to create database: " + elements[2]);
-            }
+            status.setCode(Global.FAILURE_CODE);
+            status.setMsg("Fail to drop database: " + elements[2]);
+          }
+        } else if (numElem == 3 && elements[1].equals("table")) {
+          // drop table
+          if (session.getCurrentDatabase() == null) {
+            status.setCode(Global.FAILURE_CODE);
+            status.setMsg("No database selected");
+            break;
+          }
+          String tableName = elements[1];
+          Database database = session.getCurrentDatabase();
+          if (!database.hasTable(tableName)) {
+            status.setCode(Global.FAILURE_CODE);
+            status.setMsg("No such table: " + tableName);
+            break;
+          }
+          if (database.drop(tableName)) {
+            status.setCode(Global.SUCCESS_CODE);
+          }
+          else {
+            status.setCode(Global.FAILURE_CODE);
+            status.setMsg("Fail to drop table: " + tableName);
           }
         } else {
           status.setCode(Global.FAILURE_CODE);
@@ -174,6 +240,7 @@ public class IServiceHandler implements IService.Iface {
           return resp;
         }
       }
+      break;
       default: {
         status.setCode(Global.FAILURE_CODE);
         status.setMsg("\"" + statement +"\" is not a command");

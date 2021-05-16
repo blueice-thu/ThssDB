@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class Database {
+public class Database implements Serializable {
 
   private String name;
   private HashMap<String, Table> tables;
@@ -20,7 +20,6 @@ public class Database {
     this.name = name;
     this.tables = new HashMap<>();
     this.lock = new ReentrantReadWriteLock();
-    recover();
   }
 
   public boolean persist() {
@@ -30,6 +29,7 @@ public class Database {
       for (Map.Entry<String, Table> tableEntry : tables.entrySet()) {
         objectOut.writeObject(tableEntry.getValue());
       }
+      objectOut.writeObject(null);
       objectOut.close();
     } catch (IOException e) {
       e.printStackTrace();
@@ -43,10 +43,13 @@ public class Database {
       String filename = getMetaPersistFile();
       ObjectInputStream objectIn = new ObjectInputStream(new FileInputStream(filename));
       HashMap<String, Table> recoverTables = new HashMap<>();
-      while (objectIn.available() > 0) {
-        Table table = (Table) objectIn.readObject();
+      Table table = (Table) objectIn.readObject();
+      while (table != null) {
+        // TODO
         recoverTables.put(table.getTableName(), table);
+        table = (Table) objectIn.readObject();
       }
+      objectIn.close();
       tables = recoverTables;
     } catch (EOFException ignored) {
     } catch (IOException | ClassNotFoundException e) {
@@ -101,11 +104,23 @@ public class Database {
     return tableNames;
   }
 
-  private String getMetaPersistFile() throws IOException {
-    String filename = Global.PERSIST_PATH + File.separator + name + File.separator + "tables" + Global.PERSIST_TABLE_META_SUFFIX;
-    File persistFile = new File(filename);
-    if ((!persistFile.exists() || persistFile.isDirectory()) && !persistFile.createNewFile()) return "";
-    return filename;
+  private String getMetaPersistFile() {
+    File folder = new File(Global.PERSIST_PATH + File.separator + name);
+    String metaFilename = Global.PERSIST_PATH + File.separator + name + File.separator + "tables" + Global.PERSIST_TABLE_META_SUFFIX;
+    File persistFile = new File(metaFilename);
+    if (!folder.exists() || folder.isFile()) {
+      folder.mkdir();
+    }
+    try {
+      if ((!persistFile.exists() || persistFile.isDirectory()) && !persistFile.createNewFile()) return "";
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return metaFilename;
+  }
+
+  public boolean hasTable(String tableName) {
+    return tables.containsKey(tableName);
   }
 
   public String getName() {

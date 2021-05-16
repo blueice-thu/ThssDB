@@ -24,6 +24,8 @@ public class Global {
   public static final String HELP_TEXT = "Usage:\n" +
           "\tconnect [<username> <password>]\n" +
           "\tdisconnect\n" +
+          "\tcreate database <name>\n" +
+          "\tcreate table <name>\n" +
           "\tshow time        Get current time. \"Tue May 04 22:58:49 CST 2021\"\n" +
           "\tshow [tables | databases | help]\n" +
           "\tquit             Close connection and quit client.\n" +

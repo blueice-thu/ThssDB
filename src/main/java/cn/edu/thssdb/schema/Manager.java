@@ -29,6 +29,9 @@ public class Manager {
       Database database = new Database(databaseName);
       // TODO
       databases.put(databaseName, database);
+      if (!database.persist()) {
+        return false;
+      }
       persist();
     }
     return true;
@@ -38,8 +41,18 @@ public class Manager {
     if (!databases.containsKey(databaseName)) {
       return false;
     }
-    Database database = databases.get(databaseName);
     // TODO
+    File folder = new File(Global.PERSIST_PATH + File.separator + databaseName);
+    if (folder.exists() && folder.isDirectory()) {
+      File[] files = folder.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          file.delete();
+        }
+      }
+      if (!folder.delete())
+        return false;
+    }
     databases.remove(databaseName);
     persist();
     return true;
@@ -56,9 +69,13 @@ public class Manager {
       ObjectInputStream objectIn = new ObjectInputStream(new FileInputStream(persistFilename));
 
       HashMap<String, Database> recoverDatabases = new HashMap<>();
-      while (objectIn.available() > 0) {
-        Database database = (Database) objectIn.readObject();
+      Database database = (Database) objectIn.readObject();
+      while (database != null) {
+        if (!database.recover()) {
+          System.err.println("Fail to load database:" + database.getName());
+        }
         recoverDatabases.put(database.getName(), database);
+        database = (Database) objectIn.readObject();
       }
 
       objectIn.close();
@@ -81,10 +98,9 @@ public class Manager {
         objectOut.writeObject(entry.getValue());
       }
 
-      objectOut.close();
+      objectOut.writeObject(null);
 
-      for (Map.Entry<String, Database> databaseEntry : databases.entrySet())
-        databaseEntry.getValue().persist();
+      objectOut.close();
     } catch (IOException e) {
       e.printStackTrace();
       return false;
