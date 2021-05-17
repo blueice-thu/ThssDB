@@ -26,7 +26,8 @@ public class Table implements Iterable<Row>, Serializable {
     this.databaseName = databaseName;
     this.tableName = tableName;
     this.columns = new ArrayList<>();
-    this.columns.addAll(Arrays.asList(columns));
+    if (columns != null)
+      this.columns.addAll(Arrays.asList(columns));
     this.index = new BPlusTree<>();
     this.lock = new ReentrantReadWriteLock();
 
@@ -39,7 +40,7 @@ public class Table implements Iterable<Row>, Serializable {
         break;
       }
     }
-    if (this.primaryIndex == -1) {
+    if (this.primaryIndex == -1 && len > 0) {
       // no primary, set one
       this.columns.get(0).setPrimary();
       this.primaryIndex = 0;

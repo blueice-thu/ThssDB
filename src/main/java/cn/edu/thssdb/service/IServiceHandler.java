@@ -178,7 +178,7 @@ public class IServiceHandler implements IService.Iface {
             status.setMsg("No database selected");
             break;
           }
-          String tableName = elements[1];
+          String tableName = elements[2];
           Database database = session.getCurrentDatabase();
           if (database.hasTable(tableName)) {
             status.setCode(Global.FAILURE_CODE);
@@ -220,7 +220,7 @@ public class IServiceHandler implements IService.Iface {
             status.setMsg("No database selected");
             break;
           }
-          String tableName = elements[1];
+          String tableName = elements[2];
           Database database = session.getCurrentDatabase();
           if (!database.hasTable(tableName)) {
             status.setCode(Global.FAILURE_CODE);

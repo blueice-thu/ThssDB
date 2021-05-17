@@ -67,8 +67,8 @@ public class Database implements Serializable {
     Table table = new Table(this.name, tableName, columns);
     tables.put(tableName, table);
     // TODO
-    persist();
-    return true;
+    return persist();
+//    return true;
   }
 
   public boolean drop(String tableName) {
@@ -78,8 +78,8 @@ public class Database implements Serializable {
     }
     tables.remove(tableName);
     // TODO
-    persist();
-    return true;
+    return persist();
+//    return true;
   }
 
   public String select(QueryTable[] queryTables) {
