@@ -3,6 +3,7 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.exception.DuplicateKeyException;
 import cn.edu.thssdb.exception.KeyNotExistException;
 import cn.edu.thssdb.index.BPlusTree;
+import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Global;
 import cn.edu.thssdb.utils.Pair;
 
@@ -47,8 +48,16 @@ public class Table implements Iterable<Row>, Serializable {
     }
   }
 
-  private void recover() {
-    // TODO
+  public boolean persist() {
+    try {
+      lock.readLock().lock();
+      return serialize();
+    } finally {
+      lock.readLock().unlock();
+    }
+  }
+
+  public void recover() {
     try {
       lock.writeLock().lock();
       ArrayList<Row> rows = deserialize();
@@ -64,7 +73,6 @@ public class Table implements Iterable<Row>, Serializable {
   }
 
   public void insert(Row row) throws DuplicateKeyException {
-    // TODO
     Entry primary_key = row.getEntries().get(primaryIndex);
     boolean has_exist;
     try {
@@ -89,7 +97,6 @@ public class Table implements Iterable<Row>, Serializable {
   }
 
   public void delete(Row row) throws KeyNotExistException {
-    // TODO
     Entry primary_key = row.getEntries().get(primaryIndex);
     boolean has_exist;
     try {
@@ -115,7 +122,6 @@ public class Table implements Iterable<Row>, Serializable {
   }
 
   public void update(Row row) throws Exception {
-    // TODO
     Entry primary_key = row.getEntries().get(primaryIndex);
     boolean has_exist;
     try {
@@ -138,6 +144,68 @@ public class Table implements Iterable<Row>, Serializable {
     else{
       throw new Exception("Row has not existed!");
     }
+  }
+
+  public void addColumn(String name, String type, int maxLen) throws Exception {
+    // 检查是否存在
+    for(Column c: columns){
+      if(c.getName().equals(name)){
+        throw new Exception("column has existed.");
+      }
+    }
+    // 增加属性
+    ColumnType columnType = null;
+    try{
+      columnType = ColumnType.valueOf(type);
+    }
+    catch (Exception e){
+      throw new Exception("column type is invalid.");
+    }
+    columns.add(new Column(name, columnType, 0, false, maxLen));
+    if(columns.size()==1){
+      this.columns.get(0).setPrimary();
+      this.primaryIndex = 0;
+    }
+    // 更新数据
+    for (Row row : this) {
+      row.getEntries().add(new Entry(null));
+    }
+  }
+
+  public void dropColumn(String name) throws Exception {
+    for (int i = 0; i < columns.size(); i++) {
+      Column c = columns.get(i);
+      if (c.getName().equals(name)) {
+        // 主键无法删除
+        if(c.isPrimary()){
+          throw new Exception("Primary key can not be delete.");
+        }
+        columns.remove(i);
+        // 更新数据
+        for (Row row : this) {
+          row.getEntries().remove(i);
+        }
+        return;
+      }
+    }
+    throw new Exception("column does not exist.");
+  }
+
+  public void alterColumn(String name, String type, int maxLen) throws Exception {
+    ColumnType columnType = null;
+    try{
+      columnType = ColumnType.valueOf(type);
+    }
+    catch (Exception e){
+      throw new Exception("column type is invalid.");
+    }
+    for (Column c : columns) {
+      if (c.getName().equals(name)) {
+        c.setType(columnType);
+        return;
+      }
+    }
+    throw new Exception("column does not exist.");
   }
 
   // Judge whether the folder "data/{databaseName}/{tableName}" exists
@@ -204,14 +272,7 @@ public class Table implements Iterable<Row>, Serializable {
     return new ArrayList<>();
   }
 
-  boolean persist() {
-    try {
-      lock.readLock().lock();
-      return serialize();
-    } finally {
-      lock.readLock().unlock();
-    }
-  }
+
 
   private class TableIterator implements Iterator<Row> {
     private Iterator<Pair<Entry, Row>> iterator;

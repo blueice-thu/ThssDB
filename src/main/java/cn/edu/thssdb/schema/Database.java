@@ -45,7 +45,7 @@ public class Database implements Serializable {
       HashMap<String, Table> recoverTables = new HashMap<>();
       Table table = (Table) objectIn.readObject();
       while (table != null) {
-        // TODO
+        table.recover();
         recoverTables.put(table.getTableName(), table);
         table = (Table) objectIn.readObject();
       }
@@ -80,6 +80,12 @@ public class Database implements Serializable {
     // TODO
     return persist();
 //    return true;
+  }
+
+  public Table get(String name) {
+    if (!tables.containsKey(name))
+      return null;
+    return tables.get(name);
   }
 
   public String select(QueryTable[] queryTables) {

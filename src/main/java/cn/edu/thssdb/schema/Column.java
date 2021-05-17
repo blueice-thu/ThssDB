@@ -21,6 +21,10 @@ public class Column implements Comparable<Column> {
 
   public ColumnType getType() { return type; }
 
+  public void setType(ColumnType type) {
+    this.type = type;
+  }
+
   public int getPrimary() { return primary; }
 
   public boolean isNotNull() { return notNull; }
