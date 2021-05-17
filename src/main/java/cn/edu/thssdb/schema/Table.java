@@ -208,17 +208,12 @@ public class Table implements Iterable<Row>, Serializable {
     throw new Exception("column does not exist.");
   }
 
-  // Judge whether the folder "data/{databaseName}/{tableName}" exists
   public String getPersistDir() {
     return Global.PERSIST_PATH + File.separator + databaseName + File.separator + tableName;
   }
 
   public String getRowsPersistFile() {
     return getPersistDir() + File.separator + tableName + Global.PERSIST_TABLE_ROWS_SUFFIX;
-  }
-
-  public String getMetaPersistFile() {
-    return getPersistDir() + File.separator + tableName + Global.PERSIST_TABLE_META_SUFFIX;
   }
 
   public boolean checkMakePersistDir() {
