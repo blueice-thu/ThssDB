@@ -14,6 +14,8 @@ public class QueryResult {
   private List<Cell> attrs;
   private String msg;
 
+  public QueryResult() {}
+
   public QueryResult(QueryTable[] queryTables) {
     // TODO
     this.index = new ArrayList<>();

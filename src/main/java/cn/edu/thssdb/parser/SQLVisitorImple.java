@@ -8,7 +8,10 @@ import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.type.ConstraintType;
 import cn.edu.thssdb.utils.Pair;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.StringJoiner;
 
 public class SQLVisitorImple extends SQLBaseVisitor {
     private Manager manager;
@@ -27,13 +30,12 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
     @Override
     public Object visitSql_stmt(SQLParser.Sql_stmtContext ctx) {
+        QueryResult queryResult = new QueryResult();
+        String msg = "";
+
         if (ctx.create_table_stmt() != null) {
-            // TODO
             SQLParser.Create_table_stmtContext ctx1 = ctx.create_table_stmt();
-            String msg = visitCreate_table_stmt(ctx1);
-            QueryResult queryResult = new QueryResult(null);
-            queryResult.setMsg(msg);
-            return queryResult;
+            msg = visitCreate_table_stmt(ctx1);
         }
         else if (ctx.create_db_stmt() != null) {
             // TODO
@@ -51,10 +53,10 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             // TODO
         }
         else if (ctx.drop_table_stmt() != null) {
-            // TODO
+            msg = visitDrop_table_stmt(ctx.drop_table_stmt());
         }
         else if (ctx.insert_stmt() != null) {
-            // TODO
+            msg = visitInsert_stmt(ctx.insert_stmt());
         }
         else if (ctx.select_stmt() != null) {
             // TODO
@@ -78,7 +80,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             // TODO
         }
         else if (ctx.show_table_stmt() != null) {
-            // TODO
+            msg = visitShow_table_stmt(ctx.show_table_stmt());
         }
         else if (ctx.show_meta_stmt() != null) {
             // TODO
@@ -91,7 +93,8 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         }
         else
             return null;
-        return super.visitSql_stmt(ctx);
+        queryResult.setMsg(msg);
+        return queryResult;
     }
 
     @Override
@@ -200,5 +203,40 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             columnNames[i] = ctx.column_name(i).getText().toLowerCase();
         }
         return columnNames;
+    }
+
+    @Override
+    public String visitDrop_table_stmt(SQLParser.Drop_table_stmtContext ctx) {
+        String tableName = ctx.table_name().getText().toLowerCase();
+        try {
+            session.getCurrentDatabase().drop(tableName);
+        } catch (Exception e) {
+            return e.toString();
+        }
+        return "Drop table " + tableName + " successfully.";
+    }
+
+    @Override
+    public String visitShow_table_stmt(SQLParser.Show_table_stmtContext ctx) {
+        StringJoiner joiner = new StringJoiner("\n");
+        ArrayList<String> tableNames = session.getCurrentDatabase().getTableNameList();
+        for (String tableName : tableNames)
+            joiner.add(tableName);
+        return joiner.toString();
+    }
+
+    @Override
+    public String visitInsert_stmt(SQLParser.Insert_stmtContext ctx) {
+        String tableName = ctx.table_name().getText().toLowerCase();
+        int numColumnNames = ctx.column_name().size();
+        if (numColumnNames == 0) {
+            return "No columns supplied";
+            // TODO: Error
+        }
+        String[] columnNames = new String[numColumnNames];
+        for (int i = 0; i < numColumnNames; i++) {
+            columnNames[i] = ctx.column_name(i).getText().toLowerCase();
+        }
+        // TODO
     }
 }
