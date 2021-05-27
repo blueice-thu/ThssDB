@@ -12,6 +12,7 @@ public class QueryResult {
   private List<MetaInfo> metaInfoInfos;
   private List<Integer> index;
   private List<Cell> attrs;
+  private String msg;
 
   public QueryResult(QueryTable[] queryTables) {
     // TODO
@@ -27,5 +28,13 @@ public class QueryResult {
   public Row generateQueryRecord(Row row) {
     // TODO
     return null;
+  }
+
+  public String getMsg() {
+    return msg;
+  }
+
+  public void setMsg(String msg) {
+    this.msg = msg;
   }
 }
