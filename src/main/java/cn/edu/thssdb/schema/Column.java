@@ -3,44 +3,58 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.type.ColumnType;
 
 public class Column implements Comparable<Column> {
-  private String name;
-  private ColumnType type;
-  private int primary;
-  private boolean notNull;
-  private int maxLength;
+    private String name;
+    private ColumnType type;
+    private int primary;
+    private boolean notNull;
+    private int maxLength;
 
-  public Column(String name, ColumnType type, int primary, boolean notNull, int maxLength) {
-    this.name = name;
-    this.type = type;
-    this.primary = primary;
-    this.notNull = notNull;
-    this.maxLength = maxLength;
-  }
+    public Column(String name, ColumnType type, int primary, boolean notNull, int maxLength) {
+        this.name = name;
+        this.type = type;
+        this.primary = primary;
+        this.notNull = notNull;
+        this.maxLength = maxLength;
+    }
 
-  public String getName() { return name; }
+    public String getName() {
+        return name;
+    }
 
-  public ColumnType getType() { return type; }
+    public ColumnType getType() {
+        return type;
+    }
 
-  public void setType(ColumnType type) {
-    this.type = type;
-  }
+    public void setType(ColumnType type) {
+        this.type = type;
+    }
 
-  public int getPrimary() { return primary; }
+    public int getPrimary() {
+        return primary;
+    }
 
-  public boolean isNotNull() { return notNull; }
+    public boolean isNotNull() {
+        return notNull;
+    }
 
-  public int getMaxLength() { return maxLength; }
+    public int getMaxLength() {
+        return maxLength;
+    }
 
-  public String toString() {
-    return name + ',' + type + ',' + primary + ',' + notNull + ',' + maxLength;
-  }
+    public String toString() {
+        return name + ',' + type + ',' + primary + ',' + notNull + ',' + maxLength;
+    }
 
-  public boolean isPrimary() { return primary != 0; }
+    public boolean isPrimary() {
+        return primary != 0;
+    }
 
-  public void setPrimary() { this.primary = 1; }
+    public void setPrimary() {
+        this.primary = 1;
+    }
 
-  @Override
-  public int compareTo(Column e) {
-    return name.compareTo(e.name);
-  }
+    @Override
+    public int compareTo(Column e) {
+        return name.compareTo(e.name);
+    }
 }

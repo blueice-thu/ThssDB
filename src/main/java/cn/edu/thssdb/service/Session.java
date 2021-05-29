@@ -22,6 +22,7 @@ public class Session {
         currentDatabase = database;
         currentDatabaseName = database.getName();
     }
+
     public void clearCurrentDatabase() {
         currentDatabase = null;
         currentDatabaseName = "";

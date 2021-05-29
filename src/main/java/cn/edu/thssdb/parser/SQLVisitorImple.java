@@ -3,14 +3,13 @@ package cn.edu.thssdb.parser;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.schema.Column;
 import cn.edu.thssdb.schema.Manager;
+import cn.edu.thssdb.schema.Table;
 import cn.edu.thssdb.service.Session;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.type.ConstraintType;
 import cn.edu.thssdb.utils.Pair;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
 import java.util.StringJoiner;
 
 public class SQLVisitorImple extends SQLBaseVisitor {
@@ -36,62 +35,43 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         if (ctx.create_table_stmt() != null) {
             SQLParser.Create_table_stmtContext ctx1 = ctx.create_table_stmt();
             msg = visitCreate_table_stmt(ctx1);
-        }
-        else if (ctx.create_db_stmt() != null) {
+        } else if (ctx.create_db_stmt() != null) {
             // TODO
-        }
-        else if (ctx.create_user_stmt() != null) {
+        } else if (ctx.create_user_stmt() != null) {
             // TODO
-        }
-        else if (ctx.drop_db_stmt() != null) {
+        } else if (ctx.drop_db_stmt() != null) {
             // TODO
-        }
-        else if (ctx.drop_user_stmt() != null) {
+        } else if (ctx.drop_user_stmt() != null) {
             // TODO
-        }
-        else if (ctx.delete_stmt() != null) {
+        } else if (ctx.delete_stmt() != null) {
             // TODO
-        }
-        else if (ctx.drop_table_stmt() != null) {
+        } else if (ctx.drop_table_stmt() != null) {
             msg = visitDrop_table_stmt(ctx.drop_table_stmt());
-        }
-        else if (ctx.insert_stmt() != null) {
+        } else if (ctx.insert_stmt() != null) {
             msg = visitInsert_stmt(ctx.insert_stmt());
-        }
-        else if (ctx.select_stmt() != null) {
+        } else if (ctx.select_stmt() != null) {
             // TODO
-        }
-        else if (ctx.create_view_stmt() != null) {
+        } else if (ctx.create_view_stmt() != null) {
             // TODO
-        }
-        else if (ctx.drop_view_stmt() != null) {
+        } else if (ctx.drop_view_stmt() != null) {
             // TODO
-        }
-        else if (ctx.grant_stmt() != null) {
+        } else if (ctx.grant_stmt() != null) {
             // TODO
-        }
-        else if (ctx.revoke_stmt() != null) {
+        } else if (ctx.revoke_stmt() != null) {
             // TODO
-        }
-        else if (ctx.use_db_stmt() != null) {
+        } else if (ctx.use_db_stmt() != null) {
             // TODO
-        }
-        else if (ctx.show_db_stmt() != null) {
+        } else if (ctx.show_db_stmt() != null) {
             // TODO
-        }
-        else if (ctx.show_table_stmt() != null) {
+        } else if (ctx.show_table_stmt() != null) {
             msg = visitShow_table_stmt(ctx.show_table_stmt());
-        }
-        else if (ctx.show_meta_stmt() != null) {
+        } else if (ctx.show_meta_stmt() != null) {
             // TODO
-        }
-        else if (ctx.quit_stmt() != null) {
+        } else if (ctx.quit_stmt() != null) {
             // TODO
-        }
-        else if (ctx.update_stmt() != null) {
+        } else if (ctx.update_stmt() != null) {
             // TODO
-        }
-        else
+        } else
             return null;
         queryResult.setMsg(msg);
         return queryResult;
@@ -149,8 +129,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             ConstraintType constraintType = visitColumn_constraint(ctx.column_constraint(i));
             if (constraintType.equals(ConstraintType.PRIMARY)) {
                 primary = 1;
-            }
-            else if (constraintType.equals(ConstraintType.NOTNULL)) {
+            } else if (constraintType.equals(ConstraintType.NOTNULL)) {
                 notNull = true;
             }
             if (primary == 1) {
@@ -165,21 +144,16 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     public Pair<ColumnType, Integer> visitType_name(SQLParser.Type_nameContext ctx) {
         if (ctx.T_INT() != null) {
             return new Pair<>(ColumnType.INT, 0);
-        }
-        else if (ctx.T_LONG() != null) {
+        } else if (ctx.T_LONG() != null) {
             return new Pair<>(ColumnType.LONG, 0);
-        }
-        else if (ctx.T_FLOAT() != null) {
+        } else if (ctx.T_FLOAT() != null) {
             return new Pair<>(ColumnType.FLOAT, 0);
-        }
-        else if (ctx.T_DOUBLE() != null) {
+        } else if (ctx.T_DOUBLE() != null) {
             return new Pair<>(ColumnType.DOUBLE, 0);
-        }
-        else if (ctx.T_STRING() != null) {
+        } else if (ctx.T_STRING() != null) {
             return new Pair<>(ColumnType.STRING, Integer.parseInt(ctx.NUMERIC_LITERAL().getText()));
             // TODO: Error
-        }
-        else
+        } else
             return null;
     }
 
@@ -187,11 +161,9 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     public ConstraintType visitColumn_constraint(SQLParser.Column_constraintContext ctx) {
         if (ctx.K_PRIMARY() != null) {
             return ConstraintType.PRIMARY;
-        }
-        else if (ctx.K_NULL() != null) {
+        } else if (ctx.K_NULL() != null) {
             return ConstraintType.NOTNULL;
-        }
-        else
+        } else
             return null;
     }
 
@@ -228,15 +200,42 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     @Override
     public String visitInsert_stmt(SQLParser.Insert_stmtContext ctx) {
         String tableName = ctx.table_name().getText().toLowerCase();
-        int numColumnNames = ctx.column_name().size();
-        if (numColumnNames == 0) {
-            return "No columns supplied";
-            // TODO: Error
+        Table currTable = session.getCurrentDatabase().getTable(tableName);
+
+        String[] columnNames = null;
+        if (ctx.column_name() != null) {
+            int numColumnNames = ctx.column_name().size();
+            columnNames = new String[numColumnNames];
+            for (int i = 0; i < numColumnNames; i++) {
+                columnNames[i] = ctx.column_name(i).getText().toLowerCase();
+            }
         }
-        String[] columnNames = new String[numColumnNames];
-        for (int i = 0; i < numColumnNames; i++) {
-            columnNames[i] = ctx.column_name(i).getText().toLowerCase();
+
+        int numValue = ctx.value_entry().size();
+        for (int i = 0; i < numValue; i++) {
+            String[] values = visitValue_entry(ctx.value_entry(i));
+            try {
+                if (columnNames != null) {
+                    currTable.insert(columnNames, values);
+                }
+                else {
+                    currTable.insert(values);
+                }
+            } catch (Exception e) {
+                System.err.println(e);
+            }
+
         }
-        // TODO
+        return "Insert succeed";
+    }
+
+    @Override
+    public String[] visitValue_entry(SQLParser.Value_entryContext ctx) {
+        int numLiteral = ctx.literal_value().size();
+        String[] value = new String[numLiteral];
+        for (int i = 0; i < numLiteral; i++) {
+            value[i] = ctx.literal_value(i).getText();
+        }
+        return value;
     }
 }
