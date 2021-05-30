@@ -36,15 +36,15 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             SQLParser.Create_table_stmtContext ctx1 = ctx.create_table_stmt();
             msg = visitCreate_table_stmt(ctx1);
         } else if (ctx.create_db_stmt() != null) {
-            // TODO
+            msg = visitCreate_db_stmt(ctx.create_db_stmt());
         } else if (ctx.create_user_stmt() != null) {
             // TODO
         } else if (ctx.drop_db_stmt() != null) {
-            // TODO
+            msg = visitDrop_db_stmt(ctx.drop_db_stmt());
         } else if (ctx.drop_user_stmt() != null) {
             // TODO
         } else if (ctx.delete_stmt() != null) {
-            // TODO
+            msg = visitDelete_stmt(ctx.delete_stmt());
         } else if (ctx.drop_table_stmt() != null) {
             msg = visitDrop_table_stmt(ctx.drop_table_stmt());
         } else if (ctx.insert_stmt() != null) {
@@ -62,13 +62,13 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         } else if (ctx.use_db_stmt() != null) {
             // TODO
         } else if (ctx.show_db_stmt() != null) {
-            // TODO
+            msg = visitShow_db_stmt(ctx.show_db_stmt());
         } else if (ctx.show_table_stmt() != null) {
             msg = visitShow_table_stmt(ctx.show_table_stmt());
         } else if (ctx.show_meta_stmt() != null) {
             // TODO
         } else if (ctx.quit_stmt() != null) {
-            // TODO
+            visitQuit_stmt(ctx.quit_stmt());
         } else if (ctx.update_stmt() != null) {
             // TODO
         } else
@@ -237,5 +237,78 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             value[i] = ctx.literal_value(i).getText();
         }
         return value;
+    }
+
+    @Override
+    public String visitDelete_stmt(SQLParser.Delete_stmtContext ctx) {
+        String tableName = ctx.table_name().getText().toLowerCase();
+        Table currTable = session.getCurrentDatabase().getTable(tableName);
+        if (ctx.multiple_condition() == null) {
+            currTable.clear();
+        }
+        else {
+            // TODO
+        }
+        return "Delete succeed";
+    }
+
+    @Override
+    public Object visitMultiple_condition(SQLParser.Multiple_conditionContext ctx) {
+
+        // TODO
+        return super.visitMultiple_condition(ctx);
+    }
+
+    @Override
+    public String visitCreate_db_stmt(SQLParser.Create_db_stmtContext ctx) {
+        if (ctx.database_name() != null || ctx.database_name().getText().equals("")) {
+            return "Empty database name";
+        }
+        String dbName = ctx.database_name().getText();
+        if (manager.hasDatabase(dbName)) {
+            return "Database exists";
+        }
+        if (manager.createDatabaseIfNotExists(dbName)) {
+            return "Create database succeed";
+        }
+        return "Create database failed";
+    }
+
+    @Override
+    public String visitDrop_db_stmt(SQLParser.Drop_db_stmtContext ctx) {
+        if (ctx.database_name() != null || ctx.database_name().getText().equals("")) {
+            return "Empty database name";
+        }
+        String dbName = ctx.database_name().getText();
+        if (!manager.hasDatabase(dbName)) {
+            if (ctx.K_EXISTS() == null) {
+                return "Database doesn't exist";
+            }
+            return "";
+        }
+        else {
+            if (manager.deleteDatabase(dbName)) {
+                return "Drop database succeed";
+            }
+            return "Drop database failed";
+        }
+    }
+
+    @Override
+    public String visitShow_db_stmt(SQLParser.Show_db_stmtContext ctx) {
+        StringJoiner joiner = new StringJoiner("\n");
+        ArrayList<String> databaseNames = manager.getDatabaseNameList();
+        for (String databaseName : databaseNames)
+            joiner.add(databaseName);
+        return joiner.toString();
+    }
+
+    @Override
+    public String visitQuit_stmt(SQLParser.Quit_stmtContext ctx) {
+        ArrayList<String> dbList = manager.getDatabaseNameList();
+        for (String db : dbList) {
+            manager.getDatabase(db).quit();
+        }
+        return "Quit";
     }
 }

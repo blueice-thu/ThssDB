@@ -3,6 +3,7 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.exception.DuplicateKeyException;
 import cn.edu.thssdb.exception.KeyNotExistException;
 import cn.edu.thssdb.index.BPlusTree;
+import cn.edu.thssdb.index.BPlusTreeIterator;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Global;
 import cn.edu.thssdb.utils.Pair;
@@ -211,6 +212,12 @@ public class Table implements Iterable<Row>, Serializable {
             }
         } else {
             throw new KeyNotExistException();
+        }
+    }
+
+    public void clear() {
+        for (Pair<Entry, Row> entryRowPair : index) {
+            index.remove(entryRowPair.getLeft());
         }
     }
 
