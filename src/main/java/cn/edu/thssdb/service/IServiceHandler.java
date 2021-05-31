@@ -1,10 +1,16 @@
 package cn.edu.thssdb.service;
 
+import cn.edu.thssdb.parser.SQLLexer;
+import cn.edu.thssdb.parser.SQLParser;
+import cn.edu.thssdb.parser.SQLVisitorImple;
+import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.rpc.thrift.*;
 import cn.edu.thssdb.schema.Database;
 import cn.edu.thssdb.schema.Manager;
 import cn.edu.thssdb.schema.Table;
 import cn.edu.thssdb.utils.Global;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
 import org.apache.thrift.TException;
 
 import java.util.*;
@@ -137,150 +143,57 @@ public class IServiceHandler implements IService.Iface {
         String[] elements = statement.split(" ");
         int numElem = elements.length;
         try {
-            switch (elements[0]) {
-                case "use": {
-                    if (numElem == 2) {
-                        if (databaseManager.hasDatabase(elements[1])) {
-                            session.setCurrentDatabase(databaseManager.getDatabase(elements[1]));
-                            status.setCode(Global.SUCCESS_CODE);
-                        } else {
-                            status.setCode(Global.FAILURE_CODE);
-                            status.setMsg("No such database: " + elements[1]);
-                        }
-                    } else {
-                        status.setCode(Global.FAILURE_CODE);
-                        status.setMsg("Unknown command: \"" + statement + "\"");
+            if ("ALTER".equals(elements[0])) {// 添加属性
+                if (numElem == 6 && elements[1].equals("TABLE") && elements[3].equals("ADD")) {
+                    if (session.getCurrentDatabase() == null) {
+                        throw new Exception("No database selected");
                     }
+                    Database database = session.getCurrentDatabase();
+                    String tableName = elements[2];
+                    Table table = database.getTable(tableName);
+                    if (table == null) {
+                        throw new Exception("No such table: " + tableName);
+                    }
+                    table.addColumn(elements[4], elements[5], 100);
+                    database.quit();
                 }
-                break;
-                case "create": {
-                    if (numElem == 3 && elements[1].equals("database")) {
-                        // create database
-                        if (databaseManager.hasDatabase(elements[2])) {
-                            status.setCode(Global.FAILURE_CODE);
-                            status.setMsg("Database has existed: " + elements[2]);
-                            break;
-                        }
-                        if (databaseManager.createDatabaseIfNotExists(elements[2])) {
-                            status.setCode(Global.SUCCESS_CODE);
-                        } else {
-                            status.setCode(Global.FAILURE_CODE);
-                            status.setMsg("Fail to create database: " + elements[2]);
-                        }
-                    } else if (numElem >= 3 && elements[1].equals("table")) {
-                        // create table
-                        if (session.getCurrentDatabase() == null) {
-                            status.setCode(Global.FAILURE_CODE);
-                            status.setMsg("No database selected");
-                            break;
-                        }
-                        String tableName = elements[2];
-                        Database database = session.getCurrentDatabase();
-                        if (database.hasTable(tableName)) {
-                            status.setCode(Global.FAILURE_CODE);
-                            status.setMsg("Table already exists: " + tableName);
-                            break;
-                        }
-                        // TODO
-                        if (database.create(tableName, null)) {
-                            status.setCode(Global.SUCCESS_CODE);
-                        } else {
-                            status.setCode(Global.FAILURE_CODE);
-                            status.setMsg("Fail to create table: " + tableName);
-                        }
-                    } else {
-                        status.setCode(Global.FAILURE_CODE);
-                        status.setMsg("Unknown command: \"" + statement + "\"");
+                // 删除属性
+                else if (numElem == 5 && elements[1].equals("TABLE") && elements[3].equals("DROP")) {
+                    if (session.getCurrentDatabase() == null) {
+                        throw new Exception("No database selected");
                     }
+                    Database database = session.getCurrentDatabase();
+                    String tableName = elements[2];
+                    Table table = database.getTable(tableName);
+                    if (table == null) {
+                        throw new Exception("No such table: " + tableName);
+                    }
+                    table.dropColumn(elements[4]);
+                    database.quit();
                 }
-                break;
-                case "drop": {
-                    if (numElem == 3 && elements[1].equals("database")) {
-                        if (!databaseManager.hasDatabase(elements[2])) {
-                            status.setCode(Global.FAILURE_CODE);
-                            status.setMsg("No such database: " + elements[2]);
-                            break;
-                        }
-                        if (databaseManager.deleteDatabase(elements[2])) {
-                            status.setCode(Global.SUCCESS_CODE);
-                        } else {
-                            status.setCode(Global.FAILURE_CODE);
-                            status.setMsg("Fail to drop database: " + elements[2]);
-                        }
-                    } else if (numElem == 3 && elements[1].equals("table")) {
-                        // drop table
-                        if (session.getCurrentDatabase() == null) {
-                            status.setCode(Global.FAILURE_CODE);
-                            status.setMsg("No database selected");
-                            break;
-                        }
-                        String tableName = elements[2];
-                        Database database = session.getCurrentDatabase();
-                        if (!database.hasTable(tableName)) {
-                            status.setCode(Global.FAILURE_CODE);
-                            status.setMsg("No such table: " + tableName);
-                            break;
-                        }
-                        if (database.drop(tableName)) {
-                            status.setCode(Global.SUCCESS_CODE);
-                        } else {
-                            status.setCode(Global.FAILURE_CODE);
-                            status.setMsg("Fail to drop table: " + tableName);
-                        }
-                    } else {
-                        status.setCode(Global.FAILURE_CODE);
-                        status.setMsg("Unknown command: \"" + statement + "\"");
-                        return resp;
+                // 更改属性类型
+                else if (numElem == 6 && elements[1].equals("TABLE") && elements[3].equals("ALTER")) {
+                    if (session.getCurrentDatabase() == null) {
+                        throw new Exception("No database selected");
                     }
+                    Database database = session.getCurrentDatabase();
+                    String tableName = elements[2];
+                    Table table = database.getTable(tableName);
+                    if (table == null) {
+                        throw new Exception("No such table: " + tableName);
+                    }
+                    table.alterColumn(elements[4], elements[5], 100);
+                    database.quit();
                 }
-                break;
-                case "ALTER": {
-                    // 添加属性
-                    if (numElem == 6 && elements[1].equals("TABLE") && elements[3].equals("ADD")) {
-                        if (session.getCurrentDatabase() == null) {
-                            throw new Exception("No database selected");
-                        }
-                        Database database = session.getCurrentDatabase();
-                        String tableName = elements[2];
-                        Table table = database.getTable(tableName);
-                        if (table == null) {
-                            throw new Exception("No such table: " + tableName);
-                        }
-                        table.addColumn(elements[4], elements[5], 100);
-                        database.quit();
-                    }
-                    // 删除属性
-                    else if (numElem == 5 && elements[1].equals("TABLE") && elements[3].equals("DROP")) {
-                        if (session.getCurrentDatabase() == null) {
-                            throw new Exception("No database selected");
-                        }
-                        Database database = session.getCurrentDatabase();
-                        String tableName = elements[2];
-                        Table table = database.getTable(tableName);
-                        if (table == null) {
-                            throw new Exception("No such table: " + tableName);
-                        }
-                        table.dropColumn(elements[4]);
-                        database.quit();
-                    }
-                    // 更改属性类型
-                    else if (numElem == 6 && elements[1].equals("TABLE") && elements[3].equals("ALTER")) {
-                        if (session.getCurrentDatabase() == null) {
-                            throw new Exception("No database selected");
-                        }
-                        Database database = session.getCurrentDatabase();
-                        String tableName = elements[2];
-                        Table table = database.getTable(tableName);
-                        if (table == null) {
-                            throw new Exception("No such table: " + tableName);
-                        }
-                        table.alterColumn(elements[4], elements[5], 100);
-                        database.quit();
-                    }
-
-                }
-                break;
-                default: {
+            } else {
+                SQLVisitorImple visitor = new SQLVisitorImple(databaseManager, session);
+                try {
+                    SQLLexer lexer = new SQLLexer(CharStreams.fromString(statement));
+                    CommonTokenStream tokens = new CommonTokenStream(lexer);
+                    SQLParser parser = new SQLParser(tokens);
+                    QueryResult result = visitor.visitParse(parser.parse());
+                    status.setMsg(result.getMsg());
+                } catch (Exception e) {
                     status.setCode(Global.FAILURE_CODE);
                     status.setMsg("\"" + statement + "\" is not a command");
                 }

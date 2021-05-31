@@ -6,32 +6,30 @@ import cn.edu.thssdb.schema.*;
 import cn.edu.thssdb.service.Session;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.type.ConstraintType;
+import cn.edu.thssdb.utils.Global;
 import cn.edu.thssdb.utils.Pair;
-import org.antlr.v4.runtime.misc.Triple;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.StringJoiner;
 
 public class SQLVisitorImple extends SQLBaseVisitor {
     private Manager manager;
     private Session session;
 
-    SQLVisitorImple(Manager manager1, Session session1) {
+    public SQLVisitorImple(Manager manager1, Session session1) {
         manager = manager1;
         session = session1;
     }
 
     @Override
-    public Object visitParse(SQLParser.ParseContext ctx) {
+    public QueryResult visitParse(SQLParser.ParseContext ctx) {
         // 助教：不考虑分号
         return visitSql_stmt(ctx.sql_stmt_list().sql_stmt().get(0));
     }
 
     @Override
-    public Object visitSql_stmt(SQLParser.Sql_stmtContext ctx) {
+    public QueryResult visitSql_stmt(SQLParser.Sql_stmtContext ctx) {
         QueryResult queryResult = new QueryResult();
         String msg = "";
 
@@ -63,7 +61,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         } else if (ctx.revoke_stmt() != null) {
             // TODO
         } else if (ctx.use_db_stmt() != null) {
-            // TODO
+            msg = visitUse_db_stmt(ctx.use_db_stmt());
         } else if (ctx.show_db_stmt() != null) {
             msg = visitShow_db_stmt(ctx.show_db_stmt());
         } else if (ctx.show_table_stmt() != null) {
@@ -75,7 +73,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         } else if (ctx.update_stmt() != null) {
             // TODO
         } else
-            return null;
+            msg = "Unknown command";
         queryResult.setMsg(msg);
         return queryResult;
     }
@@ -220,8 +218,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             try {
                 if (columnNames != null) {
                     currTable.insert(columnNames, values);
-                }
-                else {
+                } else {
                     currTable.insert(values);
                 }
             } catch (Exception e) {
@@ -243,27 +240,25 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     }
 
     @Override
-    public String visitDelete_stmt(SQLParser.Delete_stmtContext ctx){
-        try{
+    public String visitDelete_stmt(SQLParser.Delete_stmtContext ctx) {
+        try {
             String tableName = ctx.table_name().getText().toLowerCase();
             Table currTable = session.getCurrentDatabase().getTable(tableName);
-            if(currTable==null){
+            if (currTable == null) {
                 throw new Exception("Table not found");
             }
             if (ctx.multiple_condition() == null) {
                 currTable.clear();
-            }
-            else {
+            } else {
                 Condition condition = visitMultiple_condition(ctx.multiple_condition());
                 QueryResult queryResult = new QueryResult(currTable);
                 ArrayList<Row> rowsToDelete = queryResult.getRowFromQuery(condition);
-                for (Row row: rowsToDelete) {
+                for (Row row : rowsToDelete) {
                     currTable.delete(row);
                 }
             }
             return "Delete succeed";
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             return e.getMessage();
         }
 
@@ -291,7 +286,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
     @Override
     public String visitDrop_db_stmt(SQLParser.Drop_db_stmtContext ctx) {
-        if (ctx.database_name() != null || ctx.database_name().getText().equals("")) {
+        if (ctx.database_name() == null || ctx.database_name().getText().equals("")) {
             return "Empty database name";
         }
         String dbName = ctx.database_name().getText();
@@ -300,8 +295,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                 return "Database doesn't exist";
             }
             return "";
-        }
-        else {
+        } else {
             if (manager.deleteDatabase(dbName)) {
                 return "Drop database succeed";
             }
@@ -329,34 +323,31 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
     @Override
     public String visitUpdate_stmt(SQLParser.Update_stmtContext ctx) {
-        try{
+        try {
             String tableName = ctx.table_name().getText().toLowerCase();
             Table currTable = session.getCurrentDatabase().getTable(tableName);
-            if(currTable==null){
+            if (currTable == null) {
                 throw new Exception("Table not found");
             }
             if (ctx.multiple_condition() == null) {
                 currTable.clear();
-            }
-            else {
+            } else {
                 Condition condition = visitMultiple_condition(ctx.multiple_condition());
                 QueryResult queryResult = new QueryResult(currTable);
                 ArrayList<Row> rowsToUpdate = queryResult.getRowFromQuery(condition);
-                for (Row row: rowsToUpdate) {
+                for (Row row : rowsToUpdate) {
                     String columnName = ctx.column_name().getText().toLowerCase();
                     int indexOfColumn = currTable.indexOfColumn(columnName);
                     ArrayList<Entry> entries = row.getEntries();
-                    entries.set(indexOfColumn, (Entry) ((LiteralValue)visitExpression(ctx.expression()).comparerLeft).value);
+                    entries.set(indexOfColumn, (Entry) ((LiteralValue) visitExpression(ctx.expression()).comparerLeft).value);
                     currTable.update(row);
                 }
             }
             return "Delete succeed";
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             return e.getMessage();
         }
     }
-
 
 
     /*
@@ -375,6 +366,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                     visitMultiple_condition(ctx.multiple_condition()));
         }
     }
+
     /*
         select_stmt :
             K_SELECT ( K_DISTINCT | K_ALL )? result_column ( ',' result_column )*
@@ -407,7 +399,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             }
             QueryResult queryResult = new QueryResult(tables2Query);
 
-            queryResult.selectQuery(resultColumnNameList, tableQuery, condition);
+//            queryResult.selectQuery(resultColumnNameList, tableQuery, condition);
             return "Success"; // TODO: return
 
         } catch (Exception e) {
@@ -497,5 +489,20 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             value = ctx.getText();
         }
         return new LiteralValue(value);
+    }
+
+    @Override
+    public String visitUse_db_stmt(SQLParser.Use_db_stmtContext ctx) {
+        if (ctx.database_name() == null || ctx.database_name().getText().length() == 0) {
+            return "Empty database name";
+        }
+        String dbName = ctx.database_name().getText();
+        if (manager.hasDatabase(dbName)) {
+            session.setCurrentDatabase(manager.getDatabase(dbName));
+        } else {
+            return "No such database: " + dbName;
+        }
+        return "";
+
     }
 }

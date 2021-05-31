@@ -1135,7 +1135,14 @@ public class SQLParser extends Parser {
 		}
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof SQLVisitor ) return ((SQLVisitor<? extends T>)visitor).visitDelete_stmt(this);
+			if ( visitor instanceof SQLVisitor ) {
+				try {
+					return ((SQLVisitor<? extends T>)visitor).visitDelete_stmt(this);
+				} catch (Exception e) {
+					e.printStackTrace();
+					return null;
+				}
+			}
 			else return visitor.visitChildren(this);
 		}
 	}
