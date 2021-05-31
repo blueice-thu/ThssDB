@@ -247,13 +247,16 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         try{
             String tableName = ctx.table_name().getText().toLowerCase();
             Table currTable = session.getCurrentDatabase().getTable(tableName);
+            if(currTable==null){
+                throw new Exception("Table not found");
+            }
             if (ctx.multiple_condition() == null) {
                 currTable.clear();
             }
             else {
                 Condition condition = visitMultiple_condition(ctx.multiple_condition());
                 QueryResult queryResult = new QueryResult(currTable);
-                ArrayList<Row> rowsToDelete = queryResult.deleteQuery(condition);
+                ArrayList<Row> rowsToDelete = queryResult.getRowFromQuery(condition);
                 for (Row row: rowsToDelete) {
                     currTable.delete(row);
                 }
@@ -323,6 +326,39 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         }
         return "Quit";
     }
+
+    @Override
+    public String visitUpdate_stmt(SQLParser.Update_stmtContext ctx) {
+        try{
+            String tableName = ctx.table_name().getText().toLowerCase();
+            Table currTable = session.getCurrentDatabase().getTable(tableName);
+            if(currTable==null){
+                throw new Exception("Table not found");
+            }
+            if (ctx.multiple_condition() == null) {
+                currTable.clear();
+            }
+            else {
+                Condition condition = visitMultiple_condition(ctx.multiple_condition());
+                QueryResult queryResult = new QueryResult(currTable);
+                ArrayList<Row> rowsToUpdate = queryResult.getRowFromQuery(condition);
+                for (Row row: rowsToUpdate) {
+                    String columnName = ctx.column_name().getText().toLowerCase();
+                    int indexOfColumn = currTable.indexOfColumn(columnName);
+                    ArrayList<Entry> entries = row.getEntries();
+                    entries.set(indexOfColumn, (Entry) ((LiteralValue)visitExpression(ctx.expression()).comparerLeft).value);
+                    currTable.update(row);
+                }
+            }
+            return "Delete succeed";
+        }
+        catch (Exception e){
+            return e.getMessage();
+        }
+    }
+
+
+
     /*
         table_query:
             table_name

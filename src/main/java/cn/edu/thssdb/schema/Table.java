@@ -306,6 +306,16 @@ public class Table implements Iterable<Row>, Serializable {
         throw new Exception("column does not exist.");
     }
 
+    public int indexOfColumn(String name){
+        for (int i = 0; i < columns.size(); i++) {
+            Column c = columns.get(i);
+            if (c.getName().equals(name)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     public String getPersistDir() {
         return Global.PERSIST_PATH + File.separator + databaseName + File.separator + tableName;
     }

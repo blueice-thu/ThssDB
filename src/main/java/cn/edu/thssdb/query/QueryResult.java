@@ -53,8 +53,15 @@ public class QueryResult {
     this.msg = msg;
   }
 
-  public ArrayList<Row> deleteQuery(Condition condition) throws Exception {
+  public ArrayList<Row> getRowFromQuery(Condition condition) throws Exception {
     return filterRows(condition);
+  }
+
+  // TODO: get return string from selected rows
+  public String selectQuery(Condition condition) throws Exception {
+    ArrayList<Row> selectedRows = filterRows(condition);
+    // TODO: get return string from selected rows
+    return null;
   }
 
   private ArrayList<Row> filterRows(Condition conditions) throws Exception {
