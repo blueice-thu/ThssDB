@@ -1,15 +1,21 @@
 package cn.edu.thssdb.parser;
 
+import cn.edu.thssdb.parser.statement.*;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.schema.Column;
+import cn.edu.thssdb.schema.Database;
 import cn.edu.thssdb.schema.Manager;
 import cn.edu.thssdb.schema.Table;
 import cn.edu.thssdb.service.Session;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.type.ConstraintType;
 import cn.edu.thssdb.utils.Pair;
+import org.antlr.v4.runtime.misc.Triple;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.StringJoiner;
 
 public class SQLVisitorImple extends SQLBaseVisitor {
@@ -50,7 +56,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         } else if (ctx.insert_stmt() != null) {
             msg = visitInsert_stmt(ctx.insert_stmt());
         } else if (ctx.select_stmt() != null) {
-            // TODO
+            msg = visitSelect_stmt(ctx.select_stmt());
         } else if (ctx.create_view_stmt() != null) {
             // TODO
         } else if (ctx.drop_view_stmt() != null) {
@@ -253,10 +259,8 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     }
 
     @Override
-    public Object visitMultiple_condition(SQLParser.Multiple_conditionContext ctx) {
-
-        // TODO
-        return super.visitMultiple_condition(ctx);
+    public Condition visitMultiple_condition(SQLParser.Multiple_conditionContext ctx) {
+        return visitCondition(ctx.condition());
     }
 
     @Override
@@ -310,5 +314,144 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             manager.getDatabase(db).quit();
         }
         return "Quit";
+    }
+    /*
+        table_query:
+            table_name
+            | table_name ( K_JOIN table_name )+ K_ON multiple_condition ;
+     */
+    @Override
+    public TableQuery visitTable_query(SQLParser.Table_queryContext ctx) {
+        if (ctx.table_name(1) == null) {
+            return new TableQuery(ctx.table_name(0).getText().toLowerCase());
+        } else {
+            return new TableQuery(
+                    ctx.table_name(0).getText().toLowerCase(),
+                    ctx.table_name(1).getText().toLowerCase(),
+                    visitMultiple_condition(ctx.multiple_condition()));
+        }
+    }
+    /*
+        select_stmt :
+            K_SELECT ( K_DISTINCT | K_ALL )? result_column ( ',' result_column )*
+                K_FROM table_query ( ',' table_query )* ( K_WHERE multiple_condition )? ;
+     */
+    @Override
+    public String visitSelect_stmt(SQLParser.Select_stmtContext ctx) {
+        ArrayList<ColumnFullName> resultColumnNameList = new ArrayList<>();
+        // colnames
+        List<SQLParser.Result_columnContext> columnContextList = ctx.result_column();
+        for (SQLParser.Result_columnContext columnContext : columnContextList) {
+            resultColumnNameList.add(visitResult_column(columnContext));
+        }
+
+        // TODO: 支持ON
+        TableQuery tableQuery = visitTable_query(ctx.table_query(0));
+
+        // condition
+        Condition condition = null;
+        if (ctx.multiple_condition() != null) {
+            condition = visitMultiple_condition(ctx.multiple_condition());
+        }
+
+        try {
+            Database database = session.getCurrentDatabase();
+            ArrayList<Table> tables2Query = new ArrayList<>();
+            tables2Query.add(database.getTable(tableQuery.tableNameLeft));
+            if (tableQuery.tableNameRight != null) {
+                tables2Query.add(database.getTable(tableQuery.tableNameRight));
+            }
+            QueryResult queryResult = new QueryResult(tables2Query);
+
+            queryResult.selectQuery(resultColumnNameList, tableQuery, condition);
+            return "Success"; // TODO: return
+
+        } catch (Exception e) {
+            // TODO: Error
+            return null;
+        }
+    }
+
+    @Override
+    public ColumnFullName visitResult_column(SQLParser.Result_columnContext ctx) {
+        // null="*"
+        ColumnFullName columnFullName;
+        if (ctx.getText().equals("*")) {
+            columnFullName = new ColumnFullName(null, null);
+        } else if (ctx.table_name() != null) {
+            String tableName = ctx.table_name().getText().toLowerCase();
+            columnFullName = new ColumnFullName(tableName, null);
+        } else {
+            columnFullName = visitColumn_full_name(ctx.column_full_name());
+        }
+        return columnFullName;
+    }
+
+    @Override
+    public Condition visitCondition(SQLParser.ConditionContext ctx) {
+        return new Condition(
+                visitExpression(ctx.expression(0)),
+                ctx.comparator().getText(),
+                visitExpression(ctx.expression(1)));
+    }
+
+    @Override
+    public Expression visitExpression(SQLParser.ExpressionContext ctx) {
+        Expression expression;
+        if (ctx.comparer() != null) {
+            expression = new Expression(visitComparer(ctx.comparer()));
+        } else if (ctx.expression(1) != null) {
+            Comparer comparerLeft = (visitExpression(ctx.expression(0))).comparerLeft;
+            Comparer comparerRight = (visitExpression(ctx.expression(1))).comparerLeft;
+            if (ctx.MUL() != null) {
+                expression = new Expression(comparerLeft, Expression.OP.MUL, comparerRight);
+            } else if (ctx.DIV() != null) {
+                expression = new Expression(comparerLeft, Expression.OP.DIV, comparerRight);
+            } else if (ctx.ADD() != null) {
+                expression = new Expression(comparerLeft, Expression.OP.ADD, comparerRight);
+            } else {
+                expression = new Expression(comparerLeft, Expression.OP.SUB, comparerRight);
+            }
+        } else {
+            expression = visitExpression(ctx.expression(0));
+        }
+        return expression;
+    }
+
+    @Override
+    public Comparer visitComparer(SQLParser.ComparerContext ctx) {
+        Comparer comparer;
+        if (ctx.column_full_name() != null) {
+            comparer = visitColumn_full_name(ctx.column_full_name());
+        } else {
+            comparer = visitLiteral_value(ctx.literal_value());
+        }
+        return comparer;
+    }
+
+    @Override
+    public ColumnFullName visitColumn_full_name(SQLParser.Column_full_nameContext ctx) {
+        String tableName = null;
+        if (ctx.table_name() != null) {
+            tableName = ctx.table_name().getText().toLowerCase();
+        }
+        String columnName = ctx.column_name().getText().toLowerCase();
+        return new ColumnFullName(tableName, columnName);
+    }
+
+    @Override
+    public LiteralValue visitLiteral_value(SQLParser.Literal_valueContext ctx) {
+        Comparable value = null;
+        if (ctx.NUMERIC_LITERAL() != null) {
+            String string = ctx.getText();
+            if (string.contains(".") || string.contains("e")) {
+                value = Double.valueOf(string);
+            } else {
+                value = Long.valueOf(string);
+            }
+        } else if (ctx.STRING_LITERAL() != null) {
+            value = ctx.getText();
+        }
+        return new LiteralValue(value);
     }
 }
