@@ -87,7 +87,7 @@ public interface SQLVisitor<T> extends ParseTreeVisitor<T> {
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitDelete_stmt(SQLParser.Delete_stmtContext ctx);
+	T visitDelete_stmt(SQLParser.Delete_stmtContext ctx) throws Exception;
 	/**
 	 * Visit a parse tree produced by {@link SQLParser#drop_table_stmt}.
 	 * @param ctx the parse tree

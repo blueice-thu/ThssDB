@@ -2,10 +2,7 @@ package cn.edu.thssdb.parser;
 
 import cn.edu.thssdb.parser.statement.*;
 import cn.edu.thssdb.query.QueryResult;
-import cn.edu.thssdb.schema.Column;
-import cn.edu.thssdb.schema.Database;
-import cn.edu.thssdb.schema.Manager;
-import cn.edu.thssdb.schema.Table;
+import cn.edu.thssdb.schema.*;
 import cn.edu.thssdb.service.Session;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.type.ConstraintType;
@@ -246,16 +243,27 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     }
 
     @Override
-    public String visitDelete_stmt(SQLParser.Delete_stmtContext ctx) {
-        String tableName = ctx.table_name().getText().toLowerCase();
-        Table currTable = session.getCurrentDatabase().getTable(tableName);
-        if (ctx.multiple_condition() == null) {
-            currTable.clear();
+    public String visitDelete_stmt(SQLParser.Delete_stmtContext ctx){
+        try{
+            String tableName = ctx.table_name().getText().toLowerCase();
+            Table currTable = session.getCurrentDatabase().getTable(tableName);
+            if (ctx.multiple_condition() == null) {
+                currTable.clear();
+            }
+            else {
+                Condition condition = visitMultiple_condition(ctx.multiple_condition());
+                QueryResult queryResult = new QueryResult(currTable);
+                ArrayList<Row> rowsToDelete = queryResult.deleteQuery(condition);
+                for (Row row: rowsToDelete) {
+                    currTable.delete(row);
+                }
+            }
+            return "Delete succeed";
         }
-        else {
-            QueryResult queryResult = new QueryResult(currTable);
+        catch (Exception e){
+            return e.getMessage();
         }
-        return "Delete succeed";
+
     }
 
     @Override

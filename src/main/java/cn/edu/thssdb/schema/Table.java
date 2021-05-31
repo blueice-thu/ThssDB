@@ -50,6 +50,9 @@ public class Table implements Iterable<Row>, Serializable {
         }
     }
 
+
+
+
     public boolean persist() {
         try {
             lock.readLock().lock();
@@ -389,5 +392,21 @@ public class Table implements Iterable<Row>, Serializable {
     // Getter and Setter
     public String getTableName() {
         return tableName;
+    }
+
+    public void readLock(){
+        lock.readLock().lock();
+    }
+
+    public void readUnlock(){
+        lock.readLock().unlock();
+    }
+
+    public void writeLock(){
+        lock.writeLock().lock();
+    }
+
+    public void writeUnlock(){
+        lock.writeLock().unlock();
     }
 }
