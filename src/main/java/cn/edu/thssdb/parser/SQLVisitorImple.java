@@ -247,7 +247,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             currTable.clear();
         }
         else {
-            // TODO
+            QueryResult queryResult = new QueryResult(currTable);
         }
         return "Delete succeed";
     }
