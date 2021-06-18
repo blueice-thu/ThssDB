@@ -140,11 +140,16 @@ public class Manager {
         return databaseNames;
     }
 
+    // Transaction Functions
     public boolean isTransaction(Long sessionId) {
         return transactionSessions.contains(sessionId);
     }
 
     public void addTransaction(Long sessionId) {
         transactionSessions.add(sessionId);
+    }
+
+    public void commitTransaction(Long sessionId) {
+        transactionSessions.remove(sessionId);
     }
 }

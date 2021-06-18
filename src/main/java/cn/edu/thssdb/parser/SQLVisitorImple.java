@@ -51,14 +51,6 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             msg = visitInsert_stmt(ctx.insert_stmt());
         } else if (ctx.select_stmt() != null) {
             msg = visitSelect_stmt(ctx.select_stmt());
-        } else if (ctx.create_view_stmt() != null) {
-            // TODO
-        } else if (ctx.drop_view_stmt() != null) {
-            // TODO
-        } else if (ctx.grant_stmt() != null) {
-            // TODO
-        } else if (ctx.revoke_stmt() != null) {
-            // TODO
         } else if (ctx.use_db_stmt() != null) {
             msg = visitUse_db_stmt(ctx.use_db_stmt());
         } else if (ctx.show_db_stmt() != null) {
@@ -523,6 +515,10 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     @Override
     public String visitCommit_stmt(SQLParser.Commit_stmtContext ctx) {
         // TODO
+        if (!manager.isTransaction(session.getSessionId())) {
+            return "Not in transaction";
+        }
+        manager.commitTransaction(session.getSessionId());
         return "Commit successfully";
     }
 }
