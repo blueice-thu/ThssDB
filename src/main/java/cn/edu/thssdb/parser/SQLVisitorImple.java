@@ -74,7 +74,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         } else if (ctx.begin_transaction_stmt() != null) {
             msg = visitBegin_transaction_stmt(ctx.begin_transaction_stmt());
         } else if (ctx.commit_stmt() != null) {
-            msg =
+            msg = visitCommit_stmt(ctx.commit_stmt());
         }
         else
             msg = "Unknown command";
