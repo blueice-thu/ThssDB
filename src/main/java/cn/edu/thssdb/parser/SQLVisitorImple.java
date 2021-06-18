@@ -6,7 +6,6 @@ import cn.edu.thssdb.schema.*;
 import cn.edu.thssdb.service.Session;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.type.ConstraintType;
-import cn.edu.thssdb.utils.Global;
 import cn.edu.thssdb.utils.Pair;
 
 import java.util.ArrayList;
@@ -72,7 +71,12 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             visitQuit_stmt(ctx.quit_stmt());
         } else if (ctx.update_stmt() != null) {
             // TODO
-        } else
+        } else if (ctx.begin_transaction_stmt() != null) {
+            msg = visitBegin_transaction_stmt(ctx.begin_transaction_stmt());
+        } else if (ctx.commit_stmt() != null) {
+            msg =
+        }
+        else
             msg = "Unknown command";
         queryResult.setMsg(msg);
         return queryResult;
@@ -504,5 +508,21 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         }
         return "";
 
+    }
+
+    @Override
+    public String visitBegin_transaction_stmt(SQLParser.Begin_transaction_stmtContext ctx) {
+        if (manager.isTransaction(session.getSessionId())) {
+            return "Already in transaction";
+        }
+        manager.addTransaction(session.getSessionId());
+        // TODO: Add locks
+        return "Start transaction";
+    }
+
+    @Override
+    public String visitCommit_stmt(SQLParser.Commit_stmtContext ctx) {
+        // TODO
+        return "Commit successfully";
     }
 }
