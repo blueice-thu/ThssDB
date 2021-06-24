@@ -507,7 +507,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         } else {
             return "No such database: " + dbName;
         }
-        return "";
+        return "Switch to " + dbName;
 
     }
 

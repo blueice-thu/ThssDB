@@ -68,6 +68,7 @@ public class Client {
                             showHelp();
                             break;
                         case Global.QUIT:
+                            executeStatement(Global.QUIT);
                             disconnect();
                             open = false;
                             break;

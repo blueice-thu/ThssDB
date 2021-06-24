@@ -29,7 +29,6 @@ public class Table implements Iterable<Row>, Serializable {
     private List<Long> sLockOwner = new ArrayList<>();
 
     public Table(String databaseName, String tableName, Column[] columns) {
-        // T O D O
         this.databaseName = databaseName;
         this.tableName = tableName;
         this.columns = new ArrayList<>();
@@ -226,7 +225,7 @@ public class Table implements Iterable<Row>, Serializable {
                     case STRING:
                         int n = values[i].length();
                         if (values[i].charAt(0) != '\'' || values[i].charAt(n - 1) != '\'') {
-                            throw new Exception("TODO");
+                            throw new Exception("String format wrong");
                         }
                         realValue = values[i].substring(1, n - 1);
                         break;
@@ -373,9 +372,8 @@ public class Table implements Iterable<Row>, Serializable {
     }
 
     private boolean serialize() {
-        // T O D O
         try {
-            if (checkMakePersistDir()) {
+            if (!checkMakePersistDir()) {
                 System.err.println("Failed while serializing table and dump it to disk: mkdir failed.");
                 return false;
             }
@@ -393,7 +391,6 @@ public class Table implements Iterable<Row>, Serializable {
     }
 
     private ArrayList<Row> deserialize() {
-        // T O D O
         try {
             // Judge whether file "data/{databaseName}/tables/{tableName}.data" exists
             File tableFile = new File(getRowsPersistFile());
