@@ -2,6 +2,7 @@ package cn.edu.thssdb.schema;
 
 import cn.edu.thssdb.exception.TableAlreadyExistException;
 import cn.edu.thssdb.exception.TableNotExistException;
+import cn.edu.thssdb.index.BPlusTree;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.query.QueryTable;
 import cn.edu.thssdb.utils.Global;
@@ -30,7 +31,11 @@ public class Database implements Serializable {
             String filename = getMetaPersistFile();
             ObjectOutputStream objectOut = new ObjectOutputStream(new FileOutputStream(filename));
             for (Map.Entry<String, Table> tableEntry : tables.entrySet()) {
+                Table table = tableEntry.getValue();
+                BPlusTree<Entry, Row> tmp_idx =  table.index;
+                table.index = new BPlusTree<>();
                 objectOut.writeObject(tableEntry.getValue());
+                table.index = tmp_idx;
             }
             objectOut.writeObject(null);
             objectOut.close();
@@ -67,7 +72,6 @@ public class Database implements Serializable {
             throw new TableAlreadyExistException(tableName);
         Table table = new Table(this.name, tableName, columns);
         tables.put(tableName, table);
-        // TODO
         persist();
     }
 
@@ -75,7 +79,6 @@ public class Database implements Serializable {
         if (!tables.containsKey(tableName))
             throw new TableNotExistException(tableName);
         tables.remove(tableName);
-        // TODO
         persist();
     }
 
