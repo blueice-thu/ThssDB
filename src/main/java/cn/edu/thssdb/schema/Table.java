@@ -2,6 +2,7 @@ package cn.edu.thssdb.schema;
 
 import cn.edu.thssdb.exception.DuplicateKeyException;
 import cn.edu.thssdb.exception.KeyNotExistException;
+import cn.edu.thssdb.exception.LockWaitTimeoutException;
 import cn.edu.thssdb.index.BPlusTree;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Global;
@@ -88,6 +89,19 @@ public class Table implements Iterable<Row>, Serializable {
         }
     }
 
+    public void getXLockWithWait(Long sessionId) throws InterruptedException {
+        if (!getXLock(sessionId)) {
+            int i;
+            for (i = 0; i < Global.LOCK_TRY_TIME; i++) {
+                Thread.sleep(Global.LOCK_WAIT_INTERVAL);
+                if (getXLock(sessionId))
+                    break;
+            }
+            if (i == Global.LOCK_TRY_TIME)
+                throw new LockWaitTimeoutException();
+        }
+    }
+
     public boolean getSLock(Long sessionId) {
         if (xLockOwner == null) {
             if (!sLockOwner.contains(sessionId))
@@ -95,6 +109,19 @@ public class Table implements Iterable<Row>, Serializable {
             return true;
         }
         return false;
+    }
+
+    public void getSLockWithWait(Long sessionId) throws InterruptedException {
+        if (!getSLock(sessionId)) {
+            int i;
+            for (i = 0; i < Global.LOCK_TRY_TIME; i++) {
+                Thread.sleep(Global.LOCK_WAIT_INTERVAL);
+                if (getSLock(sessionId))
+                    break;
+            }
+            if (i == Global.LOCK_TRY_TIME)
+                throw new LockWaitTimeoutException();
+        }
     }
 
 

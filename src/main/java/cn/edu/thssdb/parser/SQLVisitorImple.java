@@ -7,6 +7,7 @@ import cn.edu.thssdb.schema.*;
 import cn.edu.thssdb.service.Session;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.type.ConstraintType;
+import cn.edu.thssdb.utils.Global;
 import cn.edu.thssdb.utils.Pair;
 
 import java.util.ArrayList;
@@ -194,6 +195,12 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         String tableName = ctx.table_name().getText().toLowerCase();
         Table currTable = session.getCurrentDatabase().getTable(tableName);
 
+        try {
+            currTable.getXLockWithWait(session.getSessionId());
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+
         String[] columnNames = null;
         if (ctx.column_name() != null) {
             int numColumnNames = ctx.column_name().size();
@@ -213,10 +220,15 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                     currTable.insert(values);
                 }
             } catch (Exception e) {
+                currTable.removeXLock(session.getSessionId());
                 return e.getMessage();
             }
 
         }
+//        if (manager.isTransaction(session.getSessionId())) {
+//            manager.logger.
+//        }
+        currTable.removeXLock(session.getSessionId());
         return "Insert succeed";
     }
 
@@ -232,12 +244,16 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
     @Override
     public String visitDelete_stmt(SQLParser.Delete_stmtContext ctx) {
+        String tableName = ctx.table_name().getText().toLowerCase();
+        Table currTable = session.getCurrentDatabase().getTable(tableName);
+
         try {
-            String tableName = ctx.table_name().getText().toLowerCase();
-            Table currTable = session.getCurrentDatabase().getTable(tableName);
-            if (currTable == null) {
-                throw new Exception("Table not found");
-            }
+            currTable.getXLockWithWait(session.getSessionId());
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+
+        try {
             if (ctx.multiple_condition() == null) {
                 currTable.clear();
             } else {
@@ -251,6 +267,8 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             return "Delete succeed";
         } catch (Exception e) {
             return e.getMessage();
+        } finally {
+            currTable.removeXLock(session.getSessionId());
         }
 
     }
@@ -330,12 +348,16 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     public String visitUpdate_stmt(SQLParser.Update_stmtContext ctx) {
         String tableName = ctx.table_name().getText().toLowerCase();
         Table currTable = session.getCurrentDatabase().getTable(tableName);
-        if (currTable == null) {
-            throw new TableNotExistException(tableName);
+
+        try {
+            currTable.getXLockWithWait(session.getSessionId());
+        } catch (Exception e) {
+            return e.getMessage();
         }
+
         try {
             if (ctx.multiple_condition() == null) {
-                currTable.clear();
+                currTable.clear(); // TODO: 是不是有问题？
             } else {
                 Condition condition = visitMultiple_condition(ctx.multiple_condition());
                 QueryResult queryResult = new QueryResult(currTable);
@@ -350,6 +372,9 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             }
         } catch (Exception e) {
             return e.getMessage();
+        }
+        finally {
+            currTable.removeXLock(session.getSessionId());
         }
         return "Delete succeed";
     }
@@ -380,6 +405,9 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     @Override
     public String visitSelect_stmt(SQLParser.Select_stmtContext ctx) {
         ArrayList<ColumnFullName> resultColumnNameList = new ArrayList<>();
+
+        // TODO: Add share lock
+
         // colnames
         List<SQLParser.Result_columnContext> columnContextList = ctx.result_column();
         for (SQLParser.Result_columnContext columnContext : columnContextList) {
