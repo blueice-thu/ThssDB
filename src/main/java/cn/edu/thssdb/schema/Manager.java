@@ -151,18 +151,18 @@ public class Manager {
         }
     }
 
-    private static class Logger {
+    public static class Logger {
         private int logCnt;
         private final ReentrantReadWriteLock lock;
         static final String DELIMITER = "|";
         static final int FLUSH_CACHE_SIZE = 100;
 
-        private Logger() {
+        public Logger() {
             lock = new ReentrantReadWriteLock();
             logCnt = 0;
         }
 
-        private void logDatabaseStmt(ArrayList<String> logList, Statement.Type type, String dbName) {
+        public void logDatabaseStmt(ArrayList<String> logList, Statement.Type type, String dbName) {
             ArrayList<String> log = new ArrayList<>();
             assert type == Statement.Type.CREATE_DATABASE
                     || type == Statement.Type.DROP_DATABASE;
@@ -173,7 +173,7 @@ public class Manager {
 
         // pass columnList only when type is CREATE_TABLE,
         //      else pass null or anything
-        private void logTableStmt(
+        public void logTableStmt(
                 ArrayList<String> logList,
                 Statement.Type type,
                 String dbName,
@@ -193,7 +193,7 @@ public class Manager {
             logList.add(String.join(DELIMITER, log));
         }
 
-        private void logRowStmt(
+        public void logRowStmt(
                 ArrayList<String> logList,
                 Statement.Type type,
                 String dbName,
@@ -209,14 +209,15 @@ public class Manager {
             log.add(type.toString());
             log.add(dbName);
             log.add(tableName);
-
+            // insert只有一行
+            // update, delete 多行
             for (Row row: rows) {
                 log.add(row.toString());
             }
             logList.add(String.join(DELIMITER, log));
         }
 
-        private void commitLog(ArrayList<String> logList, Manager manager) {
+        public void commitLog(ArrayList<String> logList, Manager manager) {
             try {
                 lock.writeLock().lock();
                 File logDir = new File(Global.LOG_PATH);
@@ -247,7 +248,7 @@ public class Manager {
             }
         }
 
-        private void redoLog(Manager manager) {
+        public void redoLog(Manager manager) {
             try {
                 lock.writeLock().lock();
                 String fName = Global.LOG_PATH + File.separator + "log";
@@ -286,7 +287,7 @@ public class Manager {
             }
         }
 
-        private void redoDatabaseStmt(Manager manager, Statement.Type type, String[] log) {
+        public void redoDatabaseStmt(Manager manager, Statement.Type type, String[] log) {
             assert type == Statement.Type.CREATE_DATABASE
                     || type == Statement.Type.DROP_DATABASE;
             try {
@@ -301,7 +302,7 @@ public class Manager {
             }
         }
 
-        private void redoTableStmt(Manager manager, Statement.Type type, String[] log) {
+        public void redoTableStmt(Manager manager, Statement.Type type, String[] log) {
             assert type == Statement.Type.CREATE_TABLE ||
                     type == Statement.Type.DROP_TABLE;
             try {
@@ -321,7 +322,7 @@ public class Manager {
             }
         }
 
-        private void redoRowStmt(Manager manager, Statement.Type type, String[] log) {
+        public void redoRowStmt(Manager manager, Statement.Type type, String[] log) {
             assert type == Statement.Type.INSERT ||
                     type == Statement.Type.DELETE ||
                     type == Statement.Type.UPDATE;
@@ -331,7 +332,9 @@ public class Manager {
                 if (type == Statement.Type.INSERT) {
                     table.insert(new Row(log[3], table.columns));
                 } else if (type == Statement.Type.DELETE) {
-                    table.delete(new Row(log[3], table.columns));
+                    for (int i = 3; i < log.length; i++) {
+                        table.delete(new Row(log[i], table.columns));
+                    }
                 } else {
                     for (int i = 3; i < log.length; i++) {
                         table.update(new Row(log[i], table.columns));

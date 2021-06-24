@@ -170,7 +170,7 @@ public class Table implements Iterable<Row>, Serializable {
         }
     }
 
-    public void insert(String[] columnNames, String[] values) throws Exception {
+    public Row insert(String[] columnNames, String[] values) throws Exception {
         if (columnNames == null || values == null || columnNames.length==0 || values.length==0) {
             throw new Exception("columnNames and values is empty");
         }
@@ -217,10 +217,12 @@ public class Table implements Iterable<Row>, Serializable {
             Entry entry = new Entry(realValue);
             entries.add(entry);
         }
-        insert(new Row(entries));
+        Row row = new Row(entries);
+        insert(row);
+        return row;
     }
 
-    public void insert(String[] values) throws Exception {
+    public Row insert(String[] values) throws Exception {
         if (values == null || values.length == 0) {
             throw new Exception("values is empty");
         }
@@ -263,7 +265,9 @@ public class Table implements Iterable<Row>, Serializable {
             }
             entries[i] = new Entry(realValue);
         }
-        insert(new Row(entries));
+        Row row = new Row(entries);
+        insert(row);
+        return row;
     }
 
     public void delete(Row row) throws KeyNotExistException {
@@ -288,10 +292,13 @@ public class Table implements Iterable<Row>, Serializable {
         }
     }
 
-    public void clear() {
+    public ArrayList<Row> clear() {
+        ArrayList<Row> rows = new ArrayList<>();
         for (Pair<Entry, Row> entryRowPair : index) {
             index.remove(entryRowPair.getLeft());
+            rows.add(entryRowPair.getRight());
         }
+        return rows;
     }
 
     public void update(Row row) throws Exception {

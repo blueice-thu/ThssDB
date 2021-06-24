@@ -11,6 +11,7 @@ import cn.edu.thssdb.utils.Global;
 import cn.edu.thssdb.utils.Pair;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.StringJoiner;
 
@@ -111,7 +112,12 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             }
         }
         session.getCurrentDatabase().create(tableName, columns);
-
+        manager.logger.logTableStmt(
+                session.logList,
+                Statement.Type.CREATE_TABLE,
+                session.getCurrentDatabaseName(),
+                tableName,
+                (ArrayList<Column>) Arrays.asList(columns));
         return "Create table " + tableName + " successfully.";
     }
 
@@ -178,6 +184,13 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     public String visitDrop_table_stmt(SQLParser.Drop_table_stmtContext ctx) {
         String tableName = ctx.table_name().getText().toLowerCase();
         session.getCurrentDatabase().drop(tableName);
+        manager.logger.logTableStmt(
+                session.logList,
+                Statement.Type.DROP_TABLE,
+                session.getCurrentDatabaseName(),
+                tableName,
+                null
+        );
         return "Drop table " + tableName + " successfully.";
     }
 
@@ -211,14 +224,23 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         }
 
         int numValue = ctx.value_entry().size();
+        String dbName = session.getCurrentDatabaseName();
         for (int i = 0; i < numValue; i++) {
             String[] values = visitValue_entry(ctx.value_entry(i));
             try {
+                ArrayList<Row> rows = new ArrayList<>();
                 if (columnNames != null && columnNames.length>0) {
-                    currTable.insert(columnNames, values);
+                    rows.add(currTable.insert(columnNames, values));
                 } else {
-                    currTable.insert(values);
+                    rows.add(currTable.insert(values));
                 }
+                manager.logger.logRowStmt(
+                        session.logList,
+                        Statement.Type.INSERT,
+                        dbName,
+                        tableName,
+                        rows
+                        );
             } catch (Exception e) {
                 currTable.removeXLock(session.getSessionId());
                 return e.getMessage();
@@ -254,8 +276,10 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         }
 
         try {
+            ArrayList<Row> removedRows;
+            String dbName = session.getCurrentDatabaseName();
             if (ctx.multiple_condition() == null) {
-                currTable.clear();
+                removedRows = currTable.clear();
             } else {
                 Condition condition = visitMultiple_condition(ctx.multiple_condition());
                 QueryResult queryResult = new QueryResult(currTable);
@@ -263,7 +287,15 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                 for (Row row : rowsToDelete) {
                     currTable.delete(row);
                 }
+                removedRows = rowsToDelete;
             }
+            manager.logger.logRowStmt(
+                    session.logList,
+                    Statement.Type.DELETE,
+                    dbName,
+                    tableName,
+                    removedRows
+                    );
             return "Delete succeed";
         } catch (Exception e) {
             return e.getMessage();
@@ -289,6 +321,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             if (manager.hasDatabase(dbName))
                 throw new DatabaseAlreadyExistException(dbName);
             manager.createDatabaseIfNotExists(dbName);
+            manager.logger.logDatabaseStmt(session.logList, Statement.Type.CREATE_DATABASE, dbName);
             return "Create database succeed";
         } catch (Exception e) {
             return e.getMessage();
@@ -302,6 +335,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                 throw new EmptyValueException("database_name");
             String dbName = ctx.database_name().getText();
             manager.deleteDatabase(dbName);
+            manager.logger.logDatabaseStmt(session.logList, Statement.Type.DROP_DATABASE, dbName);
             return "Drop database succeed";
         } catch (DatabaseNotExistException e) {
             if (ctx.K_EXISTS() == null) {
@@ -358,6 +392,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         try {
             if (ctx.multiple_condition() == null) {
                 currTable.clear(); // TODO: 是不是有问题？
+                                   // TODO: 似乎确实有问题，fix后添加logger
             } else {
                 Condition condition = visitMultiple_condition(ctx.multiple_condition());
                 QueryResult queryResult = new QueryResult(currTable);
@@ -565,7 +600,8 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         manager.sessionSTables.get(sessionId).clear();
         manager.sessionXTables.get(sessionId).clear();
         manager.commitTransaction(session.getSessionId());
-        // TODO: Write logs
+        // T O D O: Write logs
+        manager.logger.commitLog(session.logList, manager);
         return "Commit successfully";
     }
 

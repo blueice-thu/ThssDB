@@ -3,16 +3,19 @@ package cn.edu.thssdb.service;
 import cn.edu.thssdb.exception.NoDatabaseSelectedException;
 import cn.edu.thssdb.schema.Database;
 
+import java.util.ArrayList;
+
 public class Session {
     private long sessionId;
     private Database currentDatabase;
-
+    public ArrayList<String> logList;
     private String currentDatabaseName;
 
     Session(long sessionId) {
         this.sessionId = sessionId;
         currentDatabase = null;
         currentDatabaseName = "";
+        logList = new ArrayList<>();
     }
 
     public Database getCurrentDatabase() {
