@@ -16,7 +16,7 @@ public class Manager {
     public HashMap<Long, List<String>> sessionXTables = new HashMap<>();
     private HashMap<String, Database> databases = new HashMap<>();
     private final HashSet<Long> transactionSessions = new HashSet<>();
-    private final Logger logger = new Logger();
+    public final Logger logger = new Logger();
 
     public Manager() throws IOException, ClassNotFoundException {
         // TODO
