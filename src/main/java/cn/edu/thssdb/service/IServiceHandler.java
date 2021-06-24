@@ -32,7 +32,6 @@ public class IServiceHandler implements IService.Iface {
 
     @Override
     public ConnectResp connect(ConnectReq req) throws TException {
-        // TODO
         ConnectResp resp = new ConnectResp();
         String username = req.getUsername();
         String password = req.getPassword();
@@ -49,8 +48,7 @@ public class IServiceHandler implements IService.Iface {
     }
 
     @Override
-    public DisconnetResp disconnect(DisconnetReq req) throws TException {
-        // TODO
+    public DisconnetResp disconnect(DisconnetReq req) {
         long sessionId = req.getSessionId();
         Status status = new Status();
         if (isValidSessionId(sessionId)) {
@@ -68,59 +66,6 @@ public class IServiceHandler implements IService.Iface {
         }
         DisconnetResp resp = new DisconnetResp();
         resp.setStatus(status);
-        return resp;
-    }
-
-    @Override
-    public ShowResp show(ShowReq req) throws TException {
-        long sessionId = req.getSessionId();
-        String item = req.getItem();
-
-        ShowResp resp = new ShowResp();
-        Status status = new Status();
-        resp.setStatus(status);
-
-        if (!isValidSessionId(sessionId)) {
-            status.setCode(Global.FAILURE_CODE);
-            status.setMsg("Invalid sessionId.");
-            return resp;
-        }
-
-        Session session = sessions.get(sessionId);
-
-        switch (item) {
-            case "tables": {
-                if (session.getCurrentDatabase() == null) {
-                    status.setCode(Global.FAILURE_CODE);
-                    status.setMsg("No database selected");
-                    break;
-                }
-                StringJoiner joiner = new StringJoiner("\n");
-                ArrayList<String> tableNames = session.getCurrentDatabase().getTableNameList();
-                for (String tableName : tableNames)
-                    joiner.add(tableName);
-                status.setCode(Global.SUCCESS_CODE);
-                resp.setContents(joiner.toString());
-                break;
-            }
-            case "databases": {
-                StringJoiner joiner = new StringJoiner("\n");
-                ArrayList<String> databaseNames = databaseManager.getDatabaseNameList();
-                for (String databaseName : databaseNames)
-                    joiner.add(databaseName);
-                status.setCode(Global.SUCCESS_CODE);
-                resp.setContents(joiner.toString());
-                break;
-            }
-            case "help": {
-                status.setCode(Global.SUCCESS_CODE);
-                resp.setContents(Global.HELP_TEXT);
-                break;
-            }
-            default:
-                status.setCode(Global.FAILURE_CODE);
-                status.setMsg("No such show items: " + item);
-        }
         return resp;
     }
 

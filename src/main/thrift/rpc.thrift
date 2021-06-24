@@ -26,16 +26,6 @@ struct DisconnetResp{
   1: required Status status
 }
 
-struct ShowReq{
-  1: required i64 sessionId
-  2: required string item
-}
-
-struct ShowResp {
-  1: required Status status
-  2: optional string contents
-}
-
 struct GetTimeResp {
   1: required string time
   2: required Status status
@@ -59,6 +49,5 @@ service IService {
   GetTimeResp getTime(1: GetTimeReq req);
   ConnectResp connect(1: ConnectReq req);
   DisconnetResp disconnect(1: DisconnetReq req);
-  ShowResp show(1: ShowReq req);
   ExecuteStatementResp executeStatement(1: ExecuteStatementReq req);
 }

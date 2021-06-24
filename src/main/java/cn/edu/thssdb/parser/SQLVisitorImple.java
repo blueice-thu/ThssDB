@@ -1,9 +1,6 @@
 package cn.edu.thssdb.parser;
 
-import cn.edu.thssdb.exception.DatabaseAlreadyExistException;
-import cn.edu.thssdb.exception.DatabaseNotExistException;
-import cn.edu.thssdb.exception.EmptyValueException;
-import cn.edu.thssdb.exception.KeyNotExistException;
+import cn.edu.thssdb.exception.*;
 import cn.edu.thssdb.parser.statement.*;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.schema.*;
@@ -12,7 +9,6 @@ import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.type.ConstraintType;
 import cn.edu.thssdb.utils.Pair;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
@@ -37,43 +33,48 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         QueryResult queryResult = new QueryResult();
         String msg = "";
 
-        if (ctx.create_table_stmt() != null) {
-            SQLParser.Create_table_stmtContext ctx1 = ctx.create_table_stmt();
-            msg = visitCreate_table_stmt(ctx1);
-        } else if (ctx.create_db_stmt() != null) {
-            msg = visitCreate_db_stmt(ctx.create_db_stmt());
-        } else if (ctx.create_user_stmt() != null) {
-            // TODO
-        } else if (ctx.drop_db_stmt() != null) {
-            msg = visitDrop_db_stmt(ctx.drop_db_stmt());
-        } else if (ctx.drop_user_stmt() != null) {
-            // TODO
-        } else if (ctx.delete_stmt() != null) {
-            msg = visitDelete_stmt(ctx.delete_stmt());
-        } else if (ctx.drop_table_stmt() != null) {
-            msg = visitDrop_table_stmt(ctx.drop_table_stmt());
-        } else if (ctx.insert_stmt() != null) {
-            msg = visitInsert_stmt(ctx.insert_stmt());
-        } else if (ctx.select_stmt() != null) {
-            msg = visitSelect_stmt(ctx.select_stmt());
-        } else if (ctx.use_db_stmt() != null) {
-            msg = visitUse_db_stmt(ctx.use_db_stmt());
-        } else if (ctx.show_db_stmt() != null) {
-            msg = visitShow_db_stmt(ctx.show_db_stmt());
-        } else if (ctx.show_table_stmt() != null) {
-            msg = visitShow_table_stmt(ctx.show_table_stmt());
-        } else if (ctx.show_meta_stmt() != null) {
-            // TODO
-        } else if (ctx.quit_stmt() != null) {
-            visitQuit_stmt(ctx.quit_stmt());
-        } else if (ctx.update_stmt() != null) {
-            // TODO
-        } else if (ctx.begin_transaction_stmt() != null) {
-            msg = visitBegin_transaction_stmt(ctx.begin_transaction_stmt());
-        } else if (ctx.commit_stmt() != null) {
-            msg = visitCommit_stmt(ctx.commit_stmt());
-        } else
-            msg = "Unknown command";
+        try {
+            if (ctx.create_table_stmt() != null) {
+                SQLParser.Create_table_stmtContext ctx1 = ctx.create_table_stmt();
+                msg = visitCreate_table_stmt(ctx1);
+            } else if (ctx.create_db_stmt() != null) {
+                msg = visitCreate_db_stmt(ctx.create_db_stmt());
+            } else if (ctx.create_user_stmt() != null) {
+                // TODO
+            } else if (ctx.drop_db_stmt() != null) {
+                msg = visitDrop_db_stmt(ctx.drop_db_stmt());
+            } else if (ctx.drop_user_stmt() != null) {
+                // TODO
+            } else if (ctx.delete_stmt() != null) {
+                msg = visitDelete_stmt(ctx.delete_stmt());
+            } else if (ctx.drop_table_stmt() != null) {
+                msg = visitDrop_table_stmt(ctx.drop_table_stmt());
+            } else if (ctx.insert_stmt() != null) {
+                msg = visitInsert_stmt(ctx.insert_stmt());
+            } else if (ctx.select_stmt() != null) {
+                msg = visitSelect_stmt(ctx.select_stmt());
+            } else if (ctx.use_db_stmt() != null) {
+                msg = visitUse_db_stmt(ctx.use_db_stmt());
+            } else if (ctx.show_db_stmt() != null) {
+                msg = visitShow_db_stmt(ctx.show_db_stmt());
+            } else if (ctx.show_table_stmt() != null) {
+                msg = visitShow_table_stmt(ctx.show_table_stmt());
+            } else if (ctx.show_meta_stmt() != null) {
+                msg = visitShow_meta_stmt(ctx.show_meta_stmt());
+            } else if (ctx.quit_stmt() != null) {
+                msg = visitQuit_stmt(ctx.quit_stmt());
+            } else if (ctx.update_stmt() != null) {
+                // TODO
+            } else if (ctx.begin_transaction_stmt() != null) {
+                msg = visitBegin_transaction_stmt(ctx.begin_transaction_stmt());
+            } else if (ctx.commit_stmt() != null) {
+                msg = visitCommit_stmt(ctx.commit_stmt());
+            } else
+                msg = "Unknown command";
+        } catch (Exception e) {
+            msg = e.getMessage();
+        }
+
         queryResult.setMsg(msg);
         return queryResult;
     }
@@ -82,36 +83,33 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     public String visitCreate_table_stmt(SQLParser.Create_table_stmtContext ctx) {
         String tableName = ctx.table_name().getText().toLowerCase();
 
-        try {
-            // Process column defines
-            int numColumns = ctx.column_def().size();
-            Column[] columns = new Column[numColumns];
-            for (int i = 0; i < numColumns; i++) {
-                columns[i] = visitColumn_def(ctx.column_def(i));
-            }
+        // Process column defines
+        int numColumns = ctx.column_def().size();
+        Column[] columns = new Column[numColumns];
 
-            // Process table constraint: primary
-            if (ctx.table_constraint() != null) {
-                String[] columnNames = visitTable_constraint(ctx.table_constraint());
-                for (String columnName : columnNames) {
-                    String targetColumn = columnName.toLowerCase();
-                    boolean flag = false;
-                    for (int i = 0; i < numColumns; i++) {
-                        if (columns[i].getName().toLowerCase().equals(targetColumn)) {
-                            flag = true;
-                            columns[i].setPrimary();
-                            break;
-                        }
-                    }
-                    if (!flag) {
-                        throw new KeyNotExistException(columnName);
+        for (int i = 0; i < numColumns; i++) {
+            columns[i] = visitColumn_def(ctx.column_def(i));
+        }
+
+        // Process table constraint: primary
+        if (ctx.table_constraint() != null) {
+            String[] columnNames = visitTable_constraint(ctx.table_constraint());
+            for (String columnName : columnNames) {
+                String targetColumn = columnName.toLowerCase();
+                boolean flag = false;
+                for (int i = 0; i < numColumns; i++) {
+                    if (columns[i].getName().toLowerCase().equals(targetColumn)) {
+                        flag = true;
+                        columns[i].setPrimary();
+                        break;
                     }
                 }
+                if (!flag) {
+                    throw new KeyNotExistException(columnName);
+                }
             }
-            session.getCurrentDatabase().create(tableName, columns);
-        } catch (Exception e) {
-            return e.getMessage();
         }
+        session.getCurrentDatabase().create(tableName, columns);
 
         return "Create table " + tableName + " successfully.";
     }
@@ -151,9 +149,8 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             return new Pair<>(ColumnType.DOUBLE, 0);
         } else if (ctx.T_STRING() != null) {
             return new Pair<>(ColumnType.STRING, Integer.parseInt(ctx.NUMERIC_LITERAL().getText()));
-            // TODO: Error
         } else
-            return null;
+            throw new UnknownTypeException(ctx);
     }
 
     @Override
@@ -179,11 +176,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     @Override
     public String visitDrop_table_stmt(SQLParser.Drop_table_stmtContext ctx) {
         String tableName = ctx.table_name().getText().toLowerCase();
-        try {
-            session.getCurrentDatabase().drop(tableName);
-        } catch (Exception e) {
-            return e.getMessage();
-        }
+        session.getCurrentDatabase().drop(tableName);
         return "Drop table " + tableName + " successfully.";
     }
 
@@ -335,12 +328,12 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
     @Override
     public String visitUpdate_stmt(SQLParser.Update_stmtContext ctx) {
+        String tableName = ctx.table_name().getText().toLowerCase();
+        Table currTable = session.getCurrentDatabase().getTable(tableName);
+        if (currTable == null) {
+            throw new TableNotExistException(tableName);
+        }
         try {
-            String tableName = ctx.table_name().getText().toLowerCase();
-            Table currTable = session.getCurrentDatabase().getTable(tableName);
-            if (currTable == null) {
-                throw new Exception("Table not found");
-            }
             if (ctx.multiple_condition() == null) {
                 currTable.clear();
             } else {
@@ -355,10 +348,10 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                     currTable.update(row);
                 }
             }
-            return "Delete succeed";
         } catch (Exception e) {
             return e.getMessage();
         }
+        return "Delete succeed";
     }
 
 
@@ -546,5 +539,18 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         manager.commitTransaction(session.getSessionId());
         // TODO: Write logs
         return "Commit successfully";
+    }
+
+    @Override
+    public String visitShow_meta_stmt(SQLParser.Show_meta_stmtContext ctx) {
+        if (ctx.table_name() == null || ctx.table_name().getText().isEmpty())
+            throw new EmptyValueException("table_name");
+        String tableName = ctx.table_name().getText();
+        Table currTable = session.getCurrentDatabase().getTable(tableName);
+        StringJoiner joiner = new StringJoiner("\n");
+        for (Column column: currTable.columns) {
+            joiner.add(column.toString());
+        }
+        return joiner.toString();
     }
 }

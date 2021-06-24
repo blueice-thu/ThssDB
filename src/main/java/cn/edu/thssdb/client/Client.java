@@ -68,6 +68,7 @@ public class Client {
                             showHelp();
                             break;
                         case Global.QUIT:
+                            disconnect();
                             open = false;
                             break;
                         case Global.SHOW_TIME:
@@ -153,6 +154,8 @@ public class Client {
             ExecuteStatementResp resp = client.executeStatement(req);
             if (resp.getStatus().getCode() == Global.SUCCESS_CODE) {
                 println(resp.getStatus().toString());
+                println("===================================");
+                println(resp.getStatus().getMsg());
             } else {
                 println("Execute statement \"" + statement + "\" failed: " + resp.getStatus().getMsg());
             }
@@ -160,22 +163,6 @@ public class Client {
             logger.error(e.getMessage());
         }
 
-    }
-
-    private static void showSomething(String item) {
-        ShowReq req = new ShowReq();
-        req.setSessionId(sessionId);
-        req.setItem(item);
-        try {
-            ShowResp resp = client.show(req);
-            if (resp.getStatus().getCode() == Global.SUCCESS_CODE) {
-                println(resp.getContents());
-            } else {
-                println(resp.getStatus().toString());
-            }
-        } catch (TException e) {
-            e.printStackTrace();
-        }
     }
 
     static Options createOptions() {

@@ -80,7 +80,7 @@ public class Database implements Serializable {
 
     public Table getTable(String name) {
         if (!tables.containsKey(name))
-            return null;
+            throw new TableNotExistException(name);
         return tables.get(name);
     }
 

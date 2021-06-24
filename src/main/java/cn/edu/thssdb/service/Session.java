@@ -1,5 +1,6 @@
 package cn.edu.thssdb.service;
 
+import cn.edu.thssdb.exception.NoDatabaseSelectedException;
 import cn.edu.thssdb.schema.Database;
 
 public class Session {
@@ -15,6 +16,8 @@ public class Session {
     }
 
     public Database getCurrentDatabase() {
+        if (currentDatabase == null)
+            throw new NoDatabaseSelectedException();
         return currentDatabase;
     }
 
