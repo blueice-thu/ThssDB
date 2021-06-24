@@ -1,5 +1,6 @@
 package cn.edu.thssdb.parser;
 
+import cn.edu.thssdb.exception.DatabaseNotExistException;
 import cn.edu.thssdb.parser.statement.*;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.schema.*;
@@ -286,16 +287,16 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             return "Empty database name";
         }
         String dbName = ctx.database_name().getText();
-        if (!manager.hasDatabase(dbName)) {
+        try {
+            manager.deleteDatabase(dbName);
+            return "Drop database succeed";
+        } catch (DatabaseNotExistException e) {
             if (ctx.K_EXISTS() == null) {
                 return "Database doesn't exist";
             }
-            return "";
-        } else {
-            if (manager.deleteDatabase(dbName)) {
-                return "Drop database succeed";
-            }
-            return "Drop database failed";
+            return e.getMessage();
+        } catch (Exception e) {
+            return e.getMessage();
         }
     }
 

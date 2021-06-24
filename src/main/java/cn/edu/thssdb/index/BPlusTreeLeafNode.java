@@ -39,7 +39,7 @@ public class BPlusTreeLeafNode<K extends Comparable<K>, V> extends BPlusTreeNode
     int index = binarySearch(key);
     if (index >= 0)
       return values.get(index);
-    throw new KeyNotExistException();
+    throw new KeyNotExistException(key);
   }
 
   @Override
@@ -47,7 +47,7 @@ public class BPlusTreeLeafNode<K extends Comparable<K>, V> extends BPlusTreeNode
     int index = binarySearch(key);
     int valueIndex = index >= 0 ? index : -index - 1;
     if (index >= 0)
-      throw new DuplicateKeyException();
+      throw new DuplicateKeyException(String.valueOf(key));
     else {
       valuesAdd(valueIndex, value);
       keysAdd(valueIndex, key);
@@ -61,7 +61,7 @@ public class BPlusTreeLeafNode<K extends Comparable<K>, V> extends BPlusTreeNode
       valuesRemove(index);
       keysRemove(index);
     } else
-      throw new KeyNotExistException();
+      throw new KeyNotExistException(key);
   }
 
   @Override

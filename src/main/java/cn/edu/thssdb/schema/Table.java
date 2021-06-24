@@ -142,7 +142,7 @@ public class Table implements Iterable<Row>, Serializable {
                 lock.writeLock().unlock();
             }
         } else {
-            throw new DuplicateKeyException();
+            throw new DuplicateKeyException(primary_key);
         }
     }
 
@@ -263,7 +263,7 @@ public class Table implements Iterable<Row>, Serializable {
                 lock.writeLock().unlock();
             }
         } else {
-            throw new KeyNotExistException();
+            throw new KeyNotExistException(primary_key);
         }
     }
 

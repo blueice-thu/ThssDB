@@ -1,5 +1,7 @@
 package cn.edu.thssdb.schema;
 
+import cn.edu.thssdb.exception.DatabaseNotExistException;
+import cn.edu.thssdb.exception.WriteFileException;
 import cn.edu.thssdb.utils.Global;
 
 import java.io.*;
@@ -38,9 +40,9 @@ public class Manager {
         return true;
     }
 
-    public boolean deleteDatabase(String databaseName) {
+    public void deleteDatabase(String databaseName) {
         if (!databases.containsKey(databaseName)) {
-            return false;
+            throw new DatabaseNotExistException(databaseName);
         }
         // TODO
         File folder = new File(Global.PERSIST_PATH + File.separator + databaseName);
@@ -48,15 +50,15 @@ public class Manager {
             File[] files = folder.listFiles();
             if (files != null) {
                 for (File file : files) {
-                    file.delete();
+                    if (!file.delete())
+                        throw new WriteFileException(file.getAbsolutePath());
                 }
             }
             if (!folder.delete())
-                return false;
+                throw new WriteFileException(folder.getAbsolutePath());
         }
         databases.remove(databaseName);
         persist();
-        return true;
     }
 
     public void switchDatabase() {
