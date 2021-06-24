@@ -14,6 +14,31 @@ public class Row implements Serializable {
 
     }
 
+    public Row(String rowStr, ArrayList<Column> columnsList) throws Exception {
+        String[] attrListStr = rowStr.split(",");
+        if (attrListStr.length != columnsList.size()) {
+            throw new Exception("ColumnValueSizeNotMatchedException");
+        }
+        this.entries = new ArrayList<>();
+        for (int i = 0;i < attrListStr.length;i++) {
+            switch (columnsList.get(i).getType()) {
+                case INT:
+                case LONG:
+                    this.entries.add(new Entry(Long.valueOf(attrListStr[i])));
+                    break;
+                case FLOAT:
+                case DOUBLE:
+                    this.entries.add(new Entry(Double.valueOf(attrListStr[i])));
+                    break;
+                case STRING:
+                    this.entries.add(new Entry(attrListStr[i]));
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
     public Row(Entry[] entries) {
         this.entries = new ArrayList<>(Arrays.asList(entries));
     }
@@ -33,11 +58,15 @@ public class Row implements Serializable {
     }
 
     public String toString() {
-        if (entries == null)
-            return "EMPTY";
-        StringJoiner sj = new StringJoiner(", ");
+//        if (entries == null)
+//            return "EMPTY";
+//        StringJoiner sj = new StringJoiner(",");
+//        for (Entry e : entries)
+//            sj.add(e.toString());
+//        return sj.toString();
+        ArrayList<String> s = new ArrayList<>();
         for (Entry e : entries)
-            sj.add(e.toString());
-        return sj.toString();
+            s.add(e.toString());
+        return String.join(",", s);
     }
 }

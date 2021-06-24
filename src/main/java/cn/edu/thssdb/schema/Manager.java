@@ -2,6 +2,8 @@ package cn.edu.thssdb.schema;
 
 import cn.edu.thssdb.exception.DatabaseNotExistException;
 import cn.edu.thssdb.exception.WriteFileException;
+import cn.edu.thssdb.parser.statement.Statement;
+import cn.edu.thssdb.service.Session;
 import cn.edu.thssdb.utils.Global;
 
 import java.io.*;
@@ -9,17 +11,19 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Manager {
-    private static ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     public HashMap<Long, List<String>> sessionSTables = new HashMap<>();
     public HashMap<Long, List<String>> sessionXTables = new HashMap<>();
     private HashMap<String, Database> databases = new HashMap<>();
-    private HashSet<Long> transactionSessions = new HashSet<>();
+    private final HashSet<Long> transactionSessions = new HashSet<>();
+    private final Logger logger = new Logger();
 
     public Manager() throws IOException, ClassNotFoundException {
         // TODO
         recover();
         for (Map.Entry<String, Database> databaseEntry : databases.entrySet())
             databaseEntry.getValue().recover();
+        this.logger.redoLog(this);
     }
 
     public static Manager getInstance() {
@@ -60,7 +64,7 @@ public class Manager {
     }
 
     public void recover() throws IOException, ClassNotFoundException {
-        String persistFilename = "";
+        String persistFilename;
         try {
             persistFilename = getMetaPersistFile();
             ObjectInputStream objectIn = new ObjectInputStream(new FileInputStream(persistFilename));
@@ -81,8 +85,8 @@ public class Manager {
         }
     }
 
-    public void persist() throws IOException {
-        String persistFilename = "";
+    public boolean persist() throws IOException {
+        String persistFilename;
         persistFilename = getMetaPersistFile();
         ObjectOutputStream objectOut = new ObjectOutputStream(new FileOutputStream(persistFilename));
 
@@ -92,6 +96,7 @@ public class Manager {
 
         objectOut.writeObject(null);
         objectOut.close();
+        return true;
     }
 
     public boolean hasDatabase(String databaseName) {
@@ -143,6 +148,198 @@ public class Manager {
 
         private ManagerHolder() {
 
+        }
+    }
+
+    private static class Logger {
+        private int logCnt;
+        private final ReentrantReadWriteLock lock;
+        static final String DELIMITER = "|";
+        static final int FLUSH_CACHE_SIZE = 100;
+
+        private Logger() {
+            lock = new ReentrantReadWriteLock();
+            logCnt = 0;
+        }
+
+        private void logDatabaseStmt(ArrayList<String> logList, Statement.Type type, String dbName) {
+            ArrayList<String> log = new ArrayList<>();
+            assert type == Statement.Type.CREATE_DATABASE
+                    || type == Statement.Type.DROP_DATABASE;
+            log.add(type.toString());
+            log.add(dbName);
+            logList.add(String.join(DELIMITER, log));
+        }
+
+        // pass columnList only when type is CREATE_TABLE,
+        //      else pass null or anything
+        private void logTableStmt(
+                ArrayList<String> logList,
+                Statement.Type type,
+                String dbName,
+                String tableName,
+                ArrayList<Column> columnsList) {
+            ArrayList<String> log = new ArrayList<>();
+            assert type == Statement.Type.CREATE_TABLE ||
+                    type == Statement.Type.DROP_TABLE;
+            log.add(type.toString());
+            log.add(dbName);
+            log.add(tableName);
+            if (type == Statement.Type.CREATE_TABLE) {
+                for (Column column: columnsList) {
+                    log.add(column.toString());
+                }
+            }
+            logList.add(String.join(DELIMITER, log));
+        }
+
+        private void logRowStmt(
+                ArrayList<String> logList,
+                Statement.Type type,
+                String dbName,
+                String tableName,
+                ArrayList<Row> rows
+                ) {
+            assert rows != null;
+            if (rows.size() < 1) return;
+            ArrayList<String> log = new ArrayList<>();
+            assert type == Statement.Type.INSERT ||
+                    type == Statement.Type.DELETE ||
+                    type == Statement.Type.UPDATE;
+            log.add(type.toString());
+            log.add(dbName);
+            log.add(tableName);
+
+            for (Row row: rows) {
+                log.add(row.toString());
+            }
+            logList.add(String.join(DELIMITER, log));
+        }
+
+        private void commitLog(ArrayList<String> logList, Manager manager) {
+            try {
+                lock.writeLock().lock();
+                File logDir = new File(Global.LOG_PATH);
+                if (!logDir.exists() && !logDir.mkdirs()) {
+                    System.err.println("Fail to write log: mkdirs error!");
+                    return;
+                }
+                String fName = logDir + File.separator + "log";
+                FileWriter f = new FileWriter(fName, true);
+                for (String s: logList) {
+                    f.write(s + "\n");
+                    logCnt++;
+                }
+                f.flush();
+                f.close();
+
+                if (logCnt >= FLUSH_CACHE_SIZE && manager.persist()) {
+                    logCnt = 0;
+                    File logFile = new File(fName);
+                    if (logFile.exists()) {
+                        logFile.delete();
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Write Log Error");
+            } finally {
+                lock.writeLock().unlock();
+            }
+        }
+
+        private void redoLog(Manager manager) {
+            try {
+                lock.writeLock().lock();
+                String fName = Global.LOG_PATH + File.separator + "log";
+                File f = new File(fName);
+                if (!f.exists()) {
+                    return;
+                }
+                BufferedReader reader = new BufferedReader(new FileReader(f));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    logCnt++;
+                    String[] log = line.split("\\" + DELIMITER);
+                    Statement.Type type = Statement.Type.valueOf(log[0]);
+                    switch (type) {
+                        case CREATE_DATABASE:
+                        case DROP_DATABASE:
+                            redoDatabaseStmt(manager, type, log);
+                            break;
+                        case CREATE_TABLE:
+                        case DROP_TABLE:
+                            redoTableStmt(manager, type, log);
+                            break;
+                        case INSERT:
+                        case DELETE:
+                        case UPDATE:
+                            redoRowStmt(manager, type, log);
+                            break;
+                        default:
+                            System.err.println("Error: invalid log statement type");
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            } finally {
+                lock.writeLock().unlock();
+            }
+        }
+
+        private void redoDatabaseStmt(Manager manager, Statement.Type type, String[] log) {
+            assert type == Statement.Type.CREATE_DATABASE
+                    || type == Statement.Type.DROP_DATABASE;
+            try {
+                if (type == Statement.Type.CREATE_DATABASE) {
+                    manager.createDatabaseIfNotExists(log[1]);
+                }
+                else {
+                    manager.deleteDatabase(log[1]);
+                }
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
+        }
+
+        private void redoTableStmt(Manager manager, Statement.Type type, String[] log) {
+            assert type == Statement.Type.CREATE_TABLE ||
+                    type == Statement.Type.DROP_TABLE;
+            try {
+                Database database = manager.getDatabase(log[1]);
+                String tableName = log[2];
+                if (type == Statement.Type.CREATE_TABLE) {
+                    ArrayList<Column> columnsList = new ArrayList<>();
+                    for (int i = 3; i < log.length; i++) {
+                        columnsList.add(new Column(log[i]));
+                    }
+                    database.create(tableName, (Column[]) columnsList.toArray());
+                } else {
+                    database.drop(tableName);
+                }
+            }  catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
+        }
+
+        private void redoRowStmt(Manager manager, Statement.Type type, String[] log) {
+            assert type == Statement.Type.INSERT ||
+                    type == Statement.Type.DELETE ||
+                    type == Statement.Type.UPDATE;
+            try {
+                Database database = manager.getDatabase(log[1]);
+                Table table = database.getTable(log[2]);
+                if (type == Statement.Type.INSERT) {
+                    table.insert(new Row(log[3], table.columns));
+                } else if (type == Statement.Type.DELETE) {
+                    table.delete(new Row(log[3], table.columns));
+                } else {
+                    for (int i = 3; i < log.length; i++) {
+                        table.update(new Row(log[i], table.columns));
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
         }
     }
 }

@@ -21,6 +21,15 @@ public class Column implements Comparable<Column>, Serializable {
         this.maxLength = maxLength;
     }
 
+    public Column(String columnString) {
+        String[] defListStr = columnString.split(",");
+        this.name = defListStr[0];
+        this.type = ColumnType.valueOf(defListStr[1]);
+        this.primary = Integer.parseInt(defListStr[2]);
+        this.notNull = defListStr[3].equals("true");
+        this.maxLength = Integer.parseInt(defListStr[4]);
+    }
+
     public String getName() {
         return name;
     }

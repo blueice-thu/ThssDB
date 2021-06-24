@@ -29,4 +29,5 @@ public class Global {
     public static String PERSIST_PATH = "data";
     public static String PERSIST_TABLE_META_SUFFIX = ".meta";
     public static String PERSIST_TABLE_ROWS_SUFFIX = ".data";
+    public static final String LOG_PATH = "log";
 }
