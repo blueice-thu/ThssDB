@@ -54,16 +54,14 @@ public class Table implements Iterable<Row>, Serializable {
         }
     }
 
-    public boolean removeXLock(Long sessionId) {
+    public void removeXLock(Long sessionId) {
         if (xLockOwner.equals(sessionId)) {
             xLockOwner = null;
-            return true;
         }
-        return false;
     }
 
-    public boolean removeSLock(Long sessionId) {
-        return sLockOwner.remove(sessionId);
+    public void removeSLock(Long sessionId) {
+        sLockOwner.remove(sessionId);
     }
 
     public boolean getXLock(Long sessionId) {

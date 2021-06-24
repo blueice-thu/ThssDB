@@ -23,7 +23,7 @@ public class IServiceHandler implements IService.Iface {
     private HashMap<Long, Session> sessions = new HashMap<>();
 
     @Override
-    public GetTimeResp getTime(GetTimeReq req) throws TException {
+    public GetTimeResp getTime(GetTimeReq req) {
         GetTimeResp resp = new GetTimeResp();
         resp.setTime(new Date().toString());
         resp.setStatus(new Status(Global.SUCCESS_CODE));
@@ -31,7 +31,7 @@ public class IServiceHandler implements IService.Iface {
     }
 
     @Override
-    public ConnectResp connect(ConnectReq req) throws TException {
+    public ConnectResp connect(ConnectReq req) {
         ConnectResp resp = new ConnectResp();
         String username = req.getUsername();
         String password = req.getPassword();
