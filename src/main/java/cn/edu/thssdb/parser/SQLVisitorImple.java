@@ -548,6 +548,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         String tableName = ctx.table_name().getText();
         Table currTable = session.getCurrentDatabase().getTable(tableName);
         StringJoiner joiner = new StringJoiner("\n");
+        joiner.add(String.format("%-8s | %-8s | %-8s | %-8s | %-8s", "name", "type", "primary", "notNull", "maxLength"));
         for (Column column: currTable.columns) {
             joiner.add(column.toString());
         }
