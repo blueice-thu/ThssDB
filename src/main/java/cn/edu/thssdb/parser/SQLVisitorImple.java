@@ -1,6 +1,8 @@
 package cn.edu.thssdb.parser;
 
 import cn.edu.thssdb.exception.DatabaseNotExistException;
+import cn.edu.thssdb.exception.EmptyValueException;
+import cn.edu.thssdb.exception.KeyNotExistException;
 import cn.edu.thssdb.parser.statement.*;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.schema.*;
@@ -9,6 +11,7 @@ import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.type.ConstraintType;
 import cn.edu.thssdb.utils.Pair;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
@@ -79,37 +82,35 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     public String visitCreate_table_stmt(SQLParser.Create_table_stmtContext ctx) {
         String tableName = ctx.table_name().getText().toLowerCase();
 
-        // Process column defines
-        int numColumns = ctx.column_def().size();
-        Column[] columns = new Column[numColumns];
-        for (int i = 0; i < numColumns; i++) {
-            columns[i] = visitColumn_def(ctx.column_def(i));
-        }
+        try {
+            // Process column defines
+            int numColumns = ctx.column_def().size();
+            Column[] columns = new Column[numColumns];
+            for (int i = 0; i < numColumns; i++) {
+                columns[i] = visitColumn_def(ctx.column_def(i));
+            }
 
-        // Process table constraint: primary
-        if (ctx.table_constraint() != null) {
-            String[] columnNames = visitTable_constraint(ctx.table_constraint());
-            for (String columnName : columnNames) {
-                String targetColumn = columnName.toLowerCase();
-                boolean flag = false;
-                for (int i = 0; i < numColumns; i++) {
-                    if (columns[i].getName().toLowerCase().equals(targetColumn)) {
-                        flag = true;
-                        columns[i].setPrimary();
-                        break;
+            // Process table constraint: primary
+            if (ctx.table_constraint() != null) {
+                String[] columnNames = visitTable_constraint(ctx.table_constraint());
+                for (String columnName : columnNames) {
+                    String targetColumn = columnName.toLowerCase();
+                    boolean flag = false;
+                    for (int i = 0; i < numColumns; i++) {
+                        if (columns[i].getName().toLowerCase().equals(targetColumn)) {
+                            flag = true;
+                            columns[i].setPrimary();
+                            break;
+                        }
+                    }
+                    if (!flag) {
+                        throw new KeyNotExistException(columnName);
                     }
                 }
-                if (!flag) {
-                    // TODO: Error
-                    return null;
-                }
             }
-        }
-
-        try {
             session.getCurrentDatabase().create(tableName, columns);
         } catch (Exception e) {
-            return e.toString();
+            return e.getMessage();
         }
 
         return "Create table " + tableName + " successfully.";
@@ -181,7 +182,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         try {
             session.getCurrentDatabase().drop(tableName);
         } catch (Exception e) {
-            return e.toString();
+            return e.getMessage();
         }
         return "Drop table " + tableName + " successfully.";
     }
@@ -269,16 +270,17 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     @Override
     public String visitCreate_db_stmt(SQLParser.Create_db_stmtContext ctx) {
         if (ctx.database_name() != null || ctx.database_name().getText().equals("")) {
-            return "Empty database name";
+            return new EmptyValueException("database name").getMessage();
         }
         String dbName = ctx.database_name().getText();
-        if (manager.hasDatabase(dbName)) {
+        if (manager.hasDatabase(dbName))
             return "Database exists";
-        }
-        if (manager.createDatabaseIfNotExists(dbName)) {
+        try {
+            manager.createDatabaseIfNotExists(dbName);
             return "Create database succeed";
+        } catch (IOException e) {
+            return e.getMessage();
         }
-        return "Create database failed";
     }
 
     @Override
@@ -312,6 +314,19 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     @Override
     public String visitQuit_stmt(SQLParser.Quit_stmtContext ctx) {
         ArrayList<String> dbList = manager.getDatabaseNameList();
+
+        Long sessionId = session.getSessionId();
+        if (manager.isTransaction(sessionId)) {
+            for (String tableName : manager.sessionXTables.get(sessionId)) {
+                session.getCurrentDatabase().getTable(tableName).removeXLock(sessionId);
+            }
+            for (String tableName : manager.sessionSTables.get(sessionId)) {
+                session.getCurrentDatabase().getTable(tableName).removeSLock(sessionId);
+            }
+            manager.sessionSTables.remove(sessionId);
+            manager.sessionXTables.remove(sessionId);
+        }
+
         for (String db : dbList) {
             manager.getDatabase(db).quit();
         }

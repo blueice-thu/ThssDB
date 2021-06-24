@@ -1,5 +1,7 @@
 package cn.edu.thssdb.schema;
 
+import cn.edu.thssdb.exception.TableAlradyExistException;
+import cn.edu.thssdb.exception.TableNotExistException;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.query.QueryTable;
 import cn.edu.thssdb.utils.Global;
@@ -59,27 +61,21 @@ public class Database implements Serializable {
         return true;
     }
 
-    public boolean create(String tableName, Column[] columns) {
-        if (tables.containsKey(tableName)) {
-            System.err.println("Table \"" + tableName + "\" already exists");
-            return false;
-        }
+    public void create(String tableName, Column[] columns) {
+        if (tables.containsKey(tableName))
+            throw new TableAlradyExistException(tableName);
         Table table = new Table(this.name, tableName, columns);
         tables.put(tableName, table);
         // TODO
-        return persist();
-//    return true;
+        persist();
     }
 
-    public boolean drop(String tableName) {
-        if (!tables.containsKey(tableName)) {
-            System.err.println("Table \"" + tableName + "\" doesn't exist");
-            return false;
-        }
+    public void drop(String tableName) {
+        if (!tables.containsKey(tableName))
+            throw new TableNotExistException(tableName);
         tables.remove(tableName);
         // TODO
-        return persist();
-//    return true;
+        persist();
     }
 
     public Table getTable(String name) {

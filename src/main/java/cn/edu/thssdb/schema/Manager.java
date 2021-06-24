@@ -20,27 +20,26 @@ public class Manager {
         return Manager.ManagerHolder.INSTANCE;
     }
 
-    public Manager() {
+    public Manager() throws IOException, ClassNotFoundException {
         // TODO
         recover();
         for (Map.Entry<String, Database> databaseEntry : databases.entrySet())
             databaseEntry.getValue().recover();
     }
 
-    public boolean createDatabaseIfNotExists(String databaseName) {
+    public void createDatabaseIfNotExists(String databaseName) throws IOException {
         if (!databases.containsKey(databaseName)) {
             Database database = new Database(databaseName);
             // TODO
             databases.put(databaseName, database);
             if (!database.persist()) {
-                return false;
+                return;
             }
             persist();
         }
-        return true;
     }
 
-    public void deleteDatabase(String databaseName) {
+    public void deleteDatabase(String databaseName) throws IOException {
         if (!databases.containsKey(databaseName)) {
             throw new DatabaseNotExistException(databaseName);
         }
@@ -61,11 +60,7 @@ public class Manager {
         persist();
     }
 
-    public void switchDatabase() {
-        // TODO
-    }
-
-    public boolean recover() {
+    public void recover() throws IOException, ClassNotFoundException {
         String persistFilename = "";
         try {
             persistFilename = getMetaPersistFile();
@@ -84,31 +79,20 @@ public class Manager {
             objectIn.close();
             databases = recoverDatabases;
         } catch (EOFException ignored) {
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-            return false;
         }
-        return true;
     }
 
-    public boolean persist() {
+    public void persist() throws IOException {
         String persistFilename = "";
-        try {
-            persistFilename = getMetaPersistFile();
-            ObjectOutputStream objectOut = new ObjectOutputStream(new FileOutputStream(persistFilename));
+        persistFilename = getMetaPersistFile();
+        ObjectOutputStream objectOut = new ObjectOutputStream(new FileOutputStream(persistFilename));
 
-            for (Map.Entry<String, Database> entry : databases.entrySet()) {
-                objectOut.writeObject(entry.getValue());
-            }
-
-            objectOut.writeObject(null);
-
-            objectOut.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
+        for (Map.Entry<String, Database> entry : databases.entrySet()) {
+            objectOut.writeObject(entry.getValue());
         }
-        return true;
+
+        objectOut.writeObject(null);
+        objectOut.close();
     }
 
     public boolean hasDatabase(String databaseName) {
@@ -127,7 +111,15 @@ public class Manager {
     }
 
     private static class ManagerHolder {
-        private static final Manager INSTANCE = new Manager();
+        private static Manager INSTANCE = null;
+
+        static {
+            try {
+                INSTANCE = new Manager();
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
 
         private ManagerHolder() {
 
