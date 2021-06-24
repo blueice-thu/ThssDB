@@ -9,22 +9,21 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Manager {
-    private HashMap<String, Database> databases = new HashMap<>();
     private static ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-
-    private HashSet<Long> transactionSessions = new HashSet<>();
     public HashMap<Long, List<String>> sessionSTables = new HashMap<>();
     public HashMap<Long, List<String>> sessionXTables = new HashMap<>();
-
-    public static Manager getInstance() {
-        return Manager.ManagerHolder.INSTANCE;
-    }
+    private HashMap<String, Database> databases = new HashMap<>();
+    private HashSet<Long> transactionSessions = new HashSet<>();
 
     public Manager() throws IOException, ClassNotFoundException {
         // TODO
         recover();
         for (Map.Entry<String, Database> databaseEntry : databases.entrySet())
             databaseEntry.getValue().recover();
+    }
+
+    public static Manager getInstance() {
+        return Manager.ManagerHolder.INSTANCE;
     }
 
     public void createDatabaseIfNotExists(String databaseName) throws IOException {
@@ -110,22 +109,6 @@ public class Manager {
         return filename;
     }
 
-    private static class ManagerHolder {
-        private static Manager INSTANCE = null;
-
-        static {
-            try {
-                INSTANCE = new Manager();
-            } catch (IOException | ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-        }
-
-        private ManagerHolder() {
-
-        }
-    }
-
     public ArrayList<String> getDatabaseNameList() {
         ArrayList<String> databaseNames = new ArrayList<>();
         for (Map.Entry<String, Database> entry : databases.entrySet()) {
@@ -145,5 +128,21 @@ public class Manager {
 
     public void commitTransaction(Long sessionId) {
         transactionSessions.remove(sessionId);
+    }
+
+    private static class ManagerHolder {
+        private static Manager INSTANCE = null;
+
+        static {
+            try {
+                INSTANCE = new Manager();
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+
+        private ManagerHolder() {
+
+        }
     }
 }

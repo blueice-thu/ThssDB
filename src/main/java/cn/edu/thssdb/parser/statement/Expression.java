@@ -1,14 +1,9 @@
 package cn.edu.thssdb.parser.statement;
 
 public class Expression {
-    public enum OP {
-        MUL, DIV, ADD, SUB
-    }
-
     public Comparer comparerLeft;
     public Comparer comparerRight = null;
     public OP op = null;
-
     public Expression(Comparer comparerLeft) {
         this.comparerLeft = comparerLeft;
     }
@@ -17,5 +12,9 @@ public class Expression {
         this.comparerLeft = comparerLeft;
         this.op = op;
         this.comparerRight = comparerRight;
+    }
+
+    public enum OP {
+        MUL, DIV, ADD, SUB
     }
 }

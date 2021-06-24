@@ -3,7 +3,6 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.exception.DuplicateKeyException;
 import cn.edu.thssdb.exception.KeyNotExistException;
 import cn.edu.thssdb.index.BPlusTree;
-import cn.edu.thssdb.index.BPlusTreeIterator;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Global;
 import cn.edu.thssdb.utils.Pair;
@@ -17,12 +16,11 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Table implements Iterable<Row>, Serializable {
-    ReentrantReadWriteLock lock;
-    private String databaseName;
-
-    private String tableName;
     public ArrayList<Column> columns;
     public BPlusTree<Entry, Row> index;
+    ReentrantReadWriteLock lock;
+    private String databaseName;
+    private String tableName;
     private int primaryIndex;
 
     private Long xLockOwner = null;
@@ -78,8 +76,7 @@ public class Table implements Iterable<Row>, Serializable {
                     return true;
                 }
             }
-        }
-        else {
+        } else {
             if (!(sLockOwner.size() == 1 && sLockOwner.get(0).equals(sessionId)))
                 return false;
             else {
@@ -98,8 +95,6 @@ public class Table implements Iterable<Row>, Serializable {
         }
         return false;
     }
-
-
 
 
     public boolean persist() {
@@ -161,13 +156,11 @@ public class Table implements Iterable<Row>, Serializable {
                 if (column.isNotNull()) {
                     throw new Exception("TODO");
                 }
-            }
-            else if (values[index].equals("null")) {
+            } else if (values[index].equals("null")) {
                 if (column.isNotNull()) {
                     throw new Exception("TODO");
                 }
-            }
-            else {
+            } else {
                 switch (column.getType()) {
                     case INT:
                         realValue = Integer.parseInt(values[index]);
@@ -214,8 +207,7 @@ public class Table implements Iterable<Row>, Serializable {
                 if (column.isNotNull()) {
                     throw new Exception("TODO");
                 }
-            }
-            else {
+            } else {
                 switch (column.getType()) {
                     case INT:
                         realValue = Integer.parseInt(values[i]);
@@ -355,7 +347,7 @@ public class Table implements Iterable<Row>, Serializable {
         throw new Exception("column does not exist.");
     }
 
-    public int indexOfColumn(String name){
+    public int indexOfColumn(String name) {
         for (int i = 0; i < columns.size(); i++) {
             Column c = columns.get(i);
             if (c.getName().equals(name)) {
@@ -424,6 +416,31 @@ public class Table implements Iterable<Row>, Serializable {
         return new ArrayList<>();
     }
 
+    @Override
+    public Iterator<Row> iterator() {
+        return new TableIterator(this);
+    }
+
+    // Getter and Setter
+    public String getTableName() {
+        return tableName;
+    }
+
+    public void readLock() {
+        lock.readLock().lock();
+    }
+
+    public void readUnlock() {
+        lock.readLock().unlock();
+    }
+
+    public void writeLock() {
+        lock.writeLock().lock();
+    }
+
+    public void writeUnlock() {
+        lock.writeLock().unlock();
+    }
 
     private class TableIterator implements Iterator<Row> {
         private Iterator<Pair<Entry, Row>> iterator;
@@ -441,31 +458,5 @@ public class Table implements Iterable<Row>, Serializable {
         public Row next() {
             return iterator.next().right;
         }
-    }
-
-    @Override
-    public Iterator<Row> iterator() {
-        return new TableIterator(this);
-    }
-
-    // Getter and Setter
-    public String getTableName() {
-        return tableName;
-    }
-
-    public void readLock(){
-        lock.readLock().lock();
-    }
-
-    public void readUnlock(){
-        lock.readLock().unlock();
-    }
-
-    public void writeLock(){
-        lock.writeLock().lock();
-    }
-
-    public void writeUnlock(){
-        lock.writeLock().unlock();
     }
 }

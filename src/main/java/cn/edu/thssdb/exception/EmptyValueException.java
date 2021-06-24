@@ -1,9 +1,12 @@
 package cn.edu.thssdb.exception;
 
 public class EmptyValueException extends MyException {
-    public EmptyValueException() {}
+    public EmptyValueException() {
+    }
 
-    public EmptyValueException(Object key) {super(key);}
+    public EmptyValueException(Object key) {
+        super(key);
+    }
 
     @Override
     public String getMessage() {

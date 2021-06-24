@@ -33,13 +33,6 @@ public class ThssDB {
         server.start();
     }
 
-    private void start() {
-        handler = new IServiceHandler();
-        processor = new IService.Processor(handler);
-        Runnable setup = () -> setUp(processor);
-        new Thread(setup).start();
-    }
-
     private static void setUp(IService.Processor processor) {
         try {
             transport = new TServerSocket(Global.DEFAULT_SERVER_PORT);
@@ -56,6 +49,13 @@ public class ThssDB {
         } catch (TTransportException e) {
             logger.error(e.getMessage());
         }
+    }
+
+    private void start() {
+        handler = new IServiceHandler();
+        processor = new IService.Processor(handler);
+        Runnable setup = () -> setUp(processor);
+        new Thread(setup).start();
     }
 
     private static class ThssDBHolder {

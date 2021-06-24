@@ -1,9 +1,12 @@
 package cn.edu.thssdb.exception;
 
-public class TableAlradyExistException extends MyException {
-    public TableAlradyExistException() {}
+public class TableAlreadyExistException extends MyException {
+    public TableAlreadyExistException() {
+    }
 
-    public TableAlradyExistException(Object key) {super(key);}
+    public TableAlreadyExistException(Object key) {
+        super(key);
+    }
 
     @Override
     public String getMessage() {

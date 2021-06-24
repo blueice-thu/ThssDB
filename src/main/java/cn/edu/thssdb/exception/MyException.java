@@ -3,7 +3,8 @@ package cn.edu.thssdb.exception;
 public abstract class MyException extends RuntimeException {
     protected String key;
 
-    public MyException() {}
+    public MyException() {
+    }
 
     public MyException(Object key) {
         try {

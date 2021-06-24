@@ -1,6 +1,6 @@
 package cn.edu.thssdb.schema;
 
-import cn.edu.thssdb.exception.TableAlradyExistException;
+import cn.edu.thssdb.exception.TableAlreadyExistException;
 import cn.edu.thssdb.exception.TableNotExistException;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.query.QueryTable;
@@ -14,9 +14,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Database implements Serializable {
 
+    ReentrantReadWriteLock lock;
     private String name;
     private HashMap<String, Table> tables;
-    ReentrantReadWriteLock lock;
 
     public Database(String name) {
         this.name = name;
@@ -63,7 +63,7 @@ public class Database implements Serializable {
 
     public void create(String tableName, Column[] columns) {
         if (tables.containsKey(tableName))
-            throw new TableAlradyExistException(tableName);
+            throw new TableAlreadyExistException(tableName);
         Table table = new Table(this.name, tableName, columns);
         tables.put(tableName, table);
         // TODO

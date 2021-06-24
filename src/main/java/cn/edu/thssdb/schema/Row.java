@@ -7,7 +7,8 @@ import java.util.StringJoiner;
 
 public class Row implements Serializable {
     private static final long serialVersionUID = -5809782578272943999L;
-    protected ArrayList<Entry> entries = new ArrayList<>();;
+    protected ArrayList<Entry> entries = new ArrayList<>();
+    ;
 
     public Row() {
 

@@ -1,5 +1,6 @@
 package cn.edu.thssdb.parser;
 
+import cn.edu.thssdb.exception.DatabaseAlreadyExistException;
 import cn.edu.thssdb.exception.DatabaseNotExistException;
 import cn.edu.thssdb.exception.EmptyValueException;
 import cn.edu.thssdb.exception.KeyNotExistException;
@@ -71,8 +72,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             msg = visitBegin_transaction_stmt(ctx.begin_transaction_stmt());
         } else if (ctx.commit_stmt() != null) {
             msg = visitCommit_stmt(ctx.commit_stmt());
-        }
-        else
+        } else
             msg = "Unknown command";
         queryResult.setMsg(msg);
         return queryResult;
@@ -269,16 +269,16 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
     @Override
     public String visitCreate_db_stmt(SQLParser.Create_db_stmtContext ctx) {
-        if (ctx.database_name() != null || ctx.database_name().getText().equals("")) {
+        if (ctx.database_name().getText().equals("")) {
             return new EmptyValueException("database name").getMessage();
         }
         String dbName = ctx.database_name().getText();
-        if (manager.hasDatabase(dbName))
-            return "Database exists";
         try {
+            if (manager.hasDatabase(dbName))
+                throw new DatabaseAlreadyExistException(dbName);
             manager.createDatabaseIfNotExists(dbName);
             return "Create database succeed";
-        } catch (IOException e) {
+        } catch (Exception e) {
             return e.getMessage();
         }
     }
