@@ -508,17 +508,27 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             return "Already in transaction";
         }
         manager.addTransaction(session.getSessionId());
-        // TODO: Add locks
+        manager.sessionSTables.put(session.getSessionId(), new ArrayList<>());
+        manager.sessionXTables.put(session.getSessionId(), new ArrayList<>());
         return "Start transaction";
     }
 
     @Override
     public String visitCommit_stmt(SQLParser.Commit_stmtContext ctx) {
-        // TODO
-        if (!manager.isTransaction(session.getSessionId())) {
+        Long sessionId = session.getSessionId();
+        if (!manager.isTransaction(sessionId)) {
             return "Not in transaction";
         }
+        for (String tableName : manager.sessionXTables.get(sessionId)) {
+            session.getCurrentDatabase().getTable(tableName).removeXLock(sessionId);
+        }
+        for (String tableName : manager.sessionSTables.get(sessionId)) {
+            session.getCurrentDatabase().getTable(tableName).removeSLock(sessionId);
+        }
+        manager.sessionSTables.get(sessionId).clear();
+        manager.sessionXTables.get(sessionId).clear();
         manager.commitTransaction(session.getSessionId());
+        // TODO: Write logs
         return "Commit successfully";
     }
 }

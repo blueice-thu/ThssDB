@@ -13,6 +13,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Table implements Iterable<Row>, Serializable {
@@ -23,6 +24,9 @@ public class Table implements Iterable<Row>, Serializable {
     public ArrayList<Column> columns;
     public BPlusTree<Entry, Row> index;
     private int primaryIndex;
+
+    private Long xLockOwner = null;
+    private List<Long> sLockOwner = new ArrayList<>();
 
     public Table(String databaseName, String tableName, Column[] columns) {
         // T O D O
@@ -48,6 +52,51 @@ public class Table implements Iterable<Row>, Serializable {
             this.columns.get(0).setPrimary();
             this.primaryIndex = 0;
         }
+    }
+
+    public boolean removeXLock(Long sessionId) {
+        if (xLockOwner.equals(sessionId)) {
+            xLockOwner = null;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean removeSLock(Long sessionId) {
+        return sLockOwner.remove(sessionId);
+    }
+
+    public boolean getXLock(Long sessionId) {
+        if (xLockOwner != null) {
+            if (!xLockOwner.equals(sessionId))
+                return false;
+            else {
+                if (!(sLockOwner.size() == 1 && sLockOwner.get(0).equals(sessionId)))
+                    return false;
+                else {
+                    sLockOwner.clear();
+                    return true;
+                }
+            }
+        }
+        else {
+            if (!(sLockOwner.size() == 1 && sLockOwner.get(0).equals(sessionId)))
+                return false;
+            else {
+                sLockOwner.clear();
+                xLockOwner = sessionId;
+                return true;
+            }
+        }
+    }
+
+    public boolean getSLock(Long sessionId) {
+        if (xLockOwner == null) {
+            if (!sLockOwner.contains(sessionId))
+                sLockOwner.add(sessionId);
+            return true;
+        }
+        return false;
     }
 
 

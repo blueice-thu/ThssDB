@@ -3,16 +3,16 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.utils.Global;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Manager {
     private HashMap<String, Database> databases = new HashMap<>();
     private static ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+
     private HashSet<Long> transactionSessions = new HashSet<>();
+    public HashMap<Long, List<String>> sessionSTables = new HashMap<>();
+    public HashMap<Long, List<String>> sessionXTables = new HashMap<>();
 
     public static Manager getInstance() {
         return Manager.ManagerHolder.INSTANCE;
