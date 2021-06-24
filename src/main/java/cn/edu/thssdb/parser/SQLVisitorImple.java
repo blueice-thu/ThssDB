@@ -207,13 +207,13 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         for (int i = 0; i < numValue; i++) {
             String[] values = visitValue_entry(ctx.value_entry(i));
             try {
-                if (columnNames != null) {
+                if (columnNames != null && columnNames.length>0) {
                     currTable.insert(columnNames, values);
                 } else {
                     currTable.insert(values);
                 }
             } catch (Exception e) {
-                System.err.println(e);
+                return e.getMessage();
             }
 
         }

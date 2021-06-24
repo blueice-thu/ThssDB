@@ -145,7 +145,7 @@ public class IServiceHandler implements IService.Iface {
                     status.setMsg(result.getMsg());
                 } catch (Exception e) {
                     status.setCode(Global.FAILURE_CODE);
-                    status.setMsg("\"" + statement + "\" is not a command");
+                    status.setMsg(e.getMessage());
                 }
             }
         } catch (Exception e) {

@@ -144,11 +144,11 @@ public class Table implements Iterable<Row>, Serializable {
     }
 
     public void insert(String[] columnNames, String[] values) throws Exception {
-        if (columnNames == null || values == null) {
-            throw new Exception("TODO");
+        if (columnNames == null || values == null || columnNames.length==0 || values.length==0) {
+            throw new Exception("columnNames and values is empty");
         }
         if (columnNames.length != values.length) {
-            throw new Exception("TODO");
+            throw new Exception("columnNames and values do not match");
         }
         ArrayList<Entry> entries = new ArrayList<>();
         for (Column column : columns) {
@@ -156,11 +156,11 @@ public class Table implements Iterable<Row>, Serializable {
             Comparable realValue = null;
             if (index == -1) {
                 if (column.isNotNull()) {
-                    throw new Exception("TODO");
+                    throw new Exception(column.getName() + " can not be null");
                 }
             } else if (values[index].equals("null")) {
                 if (column.isNotNull()) {
-                    throw new Exception("TODO");
+                    throw new Exception(column.getName() + "columnNames can not be null");
                 }
             } else {
                 switch (column.getType()) {
@@ -195,11 +195,11 @@ public class Table implements Iterable<Row>, Serializable {
 
     public void insert(String[] values) throws Exception {
         if (values == null || values.length == 0) {
-            throw new Exception("TODO");
+            throw new Exception("values is empty");
         }
         int nValues = values.length;
         if (nValues != columns.size()) {
-            throw new Exception("TODO");
+            throw new Exception("columnNames and values do not match");
         }
         Entry[] entries = new Entry[nValues];
         for (int i = 0; i < nValues; i++) {
@@ -207,7 +207,7 @@ public class Table implements Iterable<Row>, Serializable {
             Comparable realValue = null;
             if (values[i].equals("null")) {
                 if (column.isNotNull()) {
-                    throw new Exception("TODO");
+                    throw new Exception(column.getName() + "columnNames can not be null");
                 }
             } else {
                 switch (column.getType()) {
