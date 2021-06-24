@@ -269,8 +269,9 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
     @Override
     public String visitCreate_db_stmt(SQLParser.Create_db_stmtContext ctx) {
-        if (ctx.database_name().getText().equals("")) {
-            return new EmptyValueException("database name").getMessage();
+        String databaseName = ctx.database_name().getText();
+        if (databaseName.equals("<missing IDENTIFIER>")) {
+            return new EmptyValueException("database_name").getMessage();
         }
         String dbName = ctx.database_name().getText();
         try {
@@ -285,11 +286,10 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
     @Override
     public String visitDrop_db_stmt(SQLParser.Drop_db_stmtContext ctx) {
-        if (ctx.database_name() == null || ctx.database_name().getText().equals("")) {
-            return "Empty database name";
-        }
-        String dbName = ctx.database_name().getText();
         try {
+            if (ctx.database_name() == null || ctx.database_name().getText().equals(""))
+                throw new EmptyValueException("database_name");
+            String dbName = ctx.database_name().getText();
             manager.deleteDatabase(dbName);
             return "Drop database succeed";
         } catch (DatabaseNotExistException e) {

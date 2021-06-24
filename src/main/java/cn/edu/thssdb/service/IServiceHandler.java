@@ -17,7 +17,7 @@ import java.util.*;
 
 public class IServiceHandler implements IService.Iface {
 
-    private long nextSessionId = 0;
+    private long nextSessionId = 1;
     private Manager databaseManager = Manager.getInstance();
     private Set<Long> abortSessions = new HashSet<>();
     private HashMap<Long, Session> sessions = new HashMap<>();
@@ -59,7 +59,12 @@ public class IServiceHandler implements IService.Iface {
             sessions.remove(sessionId);
         } else {
             status.setCode(Global.FAILURE_CODE);
-            status.setMsg("Invalid sessionId");
+            if (abortSessions.contains(sessionId))
+                status.setMsg("SessionId has been aborted!");
+            else if (sessionId < 0)
+                status.setMsg("Unconnected!");
+            else
+                status.setMsg("Invalid sessionId!");
         }
         DisconnetResp resp = new DisconnetResp();
         resp.setStatus(status);
@@ -215,6 +220,6 @@ public class IServiceHandler implements IService.Iface {
     }
 
     private boolean isValidSessionId(long sessionId) {
-        return sessionId >= 0 && sessionId < nextSessionId && !abortSessions.contains(sessionId);
+        return sessionId >= 1 && sessionId < nextSessionId && !abortSessions.contains(sessionId);
     }
 }

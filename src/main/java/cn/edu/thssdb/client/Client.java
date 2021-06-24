@@ -74,29 +74,18 @@ public class Client {
                             getTime();
                             break;
                         default:
-                            // Need more arguments
                             String[] elements = msg.split(" ");
                             int numElem = elements.length;
-                            switch (elements[0]) {
-                                case Global.CONNECT:
-                                    if (numElem == 1) {
-                                        connect("", "");
-                                    } else if (numElem == 3) {
-                                        connect(elements[1], elements[2]);
-                                    } else {
-                                        showInvalid();
-                                    }
-                                    break;
-                                case Global.SHOW:
-                                    if (numElem == 2) {
-                                        showSomething(elements[1]);
-                                    } else {
-                                        showInvalid();
-                                    }
-                                    break;
-                                default:
-                                    executeStatement(msg);
-                                    break;
+                            if (Global.CONNECT.equals(elements[0])) {
+                                if (numElem == 1) {
+                                    connect("", "");
+                                } else if (numElem == 3) {
+                                    connect(elements[1], elements[2]);
+                                } else {
+                                    showInvalid();
+                                }
+                            } else {
+                                executeStatement(msg);
                             }
                     }
                 }
@@ -121,6 +110,8 @@ public class Client {
     }
 
     private static void connect(String username, String password) {
+        if (sessionId > 0 && sessionId != -1)
+            disconnect();
         ConnectReq req = new ConnectReq(username, password);
         try {
             ConnectResp resp = client.connect(req);
@@ -135,7 +126,12 @@ public class Client {
     }
 
     private static void disconnect() {
+        if (sessionId == -1) {
+            println("Unconnected!");
+            return;
+        }
         DisconnetReq req = new DisconnetReq();
+        req.setSessionId(sessionId);
         try {
             DisconnetResp resp = client.disconnect(req);
             if (resp.getStatus().getCode() == Global.SUCCESS_CODE) {
