@@ -5,6 +5,7 @@ import cn.edu.thssdb.utils.Pair;
 import java.io.Serializable;
 
 public final class BPlusTree<K extends Comparable<K>, V> implements Iterable<Pair<K, V>>, Serializable {
+    private static final long serialVersionUID = -5809782518272943909L;
 
     BPlusTreeNode<K, V> root;
     private int size;

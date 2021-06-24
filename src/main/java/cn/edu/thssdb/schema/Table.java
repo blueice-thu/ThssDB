@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Table implements Iterable<Row>, Serializable {
+    private static final long serialVersionUID = -5809702518272943999L;
+
     public ArrayList<Column> columns;
     public BPlusTree<Entry, Row> index;
     ReentrantReadWriteLock lock;

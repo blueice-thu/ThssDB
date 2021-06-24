@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Database implements Serializable {
+    private static final long serialVersionUID = -5809782518272943999L;
 
     ReentrantReadWriteLock lock;
     private String name;
