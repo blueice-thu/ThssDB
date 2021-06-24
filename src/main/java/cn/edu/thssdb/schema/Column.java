@@ -55,7 +55,7 @@ public class Column implements Comparable<Column>, Serializable {
     }
 
     public String toString() {
-        return name + ',' + type + ',' + primary + ',' + notNull + ',' + maxLength;
+        return String.format("%-8s | %-8s | %-8s | %-8s | %-8s", name, type, primary, notNull, maxLength);
     }
 
     public boolean isPrimary() {
