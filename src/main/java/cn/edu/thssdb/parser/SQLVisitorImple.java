@@ -401,10 +401,21 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             if(rowsToUpdate==null || rowsToUpdate.size()==0) {
                 return "No row can update";
             }
+            String dbName = session.getCurrentDatabaseName();
+            ArrayList<Row> rows = new ArrayList<>();
             for (Row row : rowsToUpdate) {
                 String columnName = ctx.column_name().getText().toLowerCase();
-                currTable.update(row, columnName, ctx.expression().getText());
+                Pair<Row,Row> rowRowPair = currTable.update(row, columnName, ctx.expression().getText());
+                rows.add(rowRowPair.getLeft());
+                rows.add(rowRowPair.getRight());
             }
+            manager.logger.logRowStmt(
+                    session.logList,
+                    Statement.Type.UPDATE,
+                    dbName,
+                    tableName,
+                    rows
+                    );
         } catch (Exception e) {
             return e.getMessage();
         }
@@ -592,6 +603,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         if (!manager.isTransaction(sessionId)) {
             return "Not in transaction";
         }
+        manager.logger.commitLog(session.logList, manager);
         for (String tableName : manager.sessionXTables.get(sessionId)) {
             session.getCurrentDatabase().getTable(tableName).removeXLock(sessionId);
         }
@@ -602,7 +614,6 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         manager.sessionXTables.get(sessionId).clear();
         manager.commitTransaction(session.getSessionId());
         // T O D O: Write logs
-        manager.logger.commitLog(session.logList, manager);
         return "Commit successfully";
     }
 
