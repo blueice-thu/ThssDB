@@ -438,11 +438,10 @@ public class SQLVisitorImple extends SQLBaseVisitor {
      */
     @Override
     public String visitSelect_stmt(SQLParser.Select_stmtContext ctx) {
-        ArrayList<ColumnFullName> resultColumnNameList = new ArrayList<>();
-
         // TODO: Add share lock
 
-        // colnames
+        // column names
+        ArrayList<ColumnFullName> resultColumnNameList = new ArrayList<>();
         List<SQLParser.Result_columnContext> columnContextList = ctx.result_column();
         for (SQLParser.Result_columnContext columnContext : columnContextList) {
             resultColumnNameList.add(visitResult_column(columnContext));
@@ -458,8 +457,6 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         }
 
         try {
-//            QueryResult queryResult = new QueryResult(currTable);
-//            ArrayList<Row> rowsToDelete = queryResult.getRowFromQuery(condition);
             Database database = session.getCurrentDatabase();
             ArrayList<Table> tables2Query = new ArrayList<>();
             tables2Query.add(database.getTable(tableQuery.tableNameLeft));
@@ -468,8 +465,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             }
             QueryResult queryResult = new QueryResult(tables2Query);
 
-            // queryResult.selectQuery(resultColumnNameList, tableQuery, condition);
-            return "Success"; // TODO: return
+            return queryResult.selectQuery(resultColumnNameList, condition);
 
         } catch (Exception e) {
             // TODO: Error
