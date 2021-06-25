@@ -1,16 +1,18 @@
 package cn.edu.thssdb.parser.statement;
 
+import java.util.ArrayList;
+
 public class TableQuery {
-    public Condition condition = null;
+    public ArrayList<Condition> conditions = null;
     public String tableNameLeft, tableNameRight = null;
 
     public TableQuery(String tableNameLeft) {
         this.tableNameLeft = tableNameLeft;
     }
 
-    public TableQuery(String tableNameLeft, String tableNameRight, Condition condition) {
+    public TableQuery(String tableNameLeft, String tableNameRight, ArrayList<Condition> conditions) {
         this.tableNameLeft = tableNameLeft;
         this.tableNameRight = tableNameRight;
-        this.condition = condition;
+        this.conditions = conditions;
     }
 }

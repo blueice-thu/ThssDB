@@ -39,7 +39,7 @@ public class QueryResult {
         }
     }
 
-    public QueryResult(ArrayList<Table> tables, Condition onCondition) throws Exception {
+    public QueryResult(ArrayList<Table> tables, ArrayList<Condition> onConditions, boolean opAndOn) throws Exception {
         this.tables = new ArrayList<>();
         this.tables.addAll(tables);
         this.metaInfos = new ArrayList<>();
@@ -48,23 +48,24 @@ public class QueryResult {
         }
 
         combinedRowList = new ArrayList<>();
-        boolean reverse=false;
-        if(onCondition!=null) {
-            if (((ColumnFullName) onCondition.expressionLeft.comparerLeft).tableName.equals(metaInfos.get(0).getTableName()) &&
-                    ((ColumnFullName) onCondition.expressionRight.comparerLeft).tableName.equals(metaInfos.get(1).getTableName())) {
-                reverse = false;
-            } else if (((ColumnFullName) onCondition.expressionLeft.comparerLeft).tableName.equals(metaInfos.get(1).getTableName()) &&
-                    ((ColumnFullName) onCondition.expressionRight.comparerLeft).tableName.equals(metaInfos.get(0).getTableName())) {
-                reverse = true;
-            } else {
-                throw new Exception("on condition is wrong");
+        ArrayList<Boolean> reverseList = new ArrayList<>();
+        if(onConditions!=null) {
+            for(Condition onCondition: onConditions){
+                if (((ColumnFullName) onCondition.expressionLeft.comparerLeft).tableName.equals(metaInfos.get(0).getTableName()) &&
+                        ((ColumnFullName) onCondition.expressionRight.comparerLeft).tableName.equals(metaInfos.get(1).getTableName())) {
+                    reverseList.add(false);
+                } else if (((ColumnFullName) onCondition.expressionLeft.comparerLeft).tableName.equals(metaInfos.get(1).getTableName()) &&
+                        ((ColumnFullName) onCondition.expressionRight.comparerLeft).tableName.equals(metaInfos.get(0).getTableName())) {
+                    reverseList.add(true);
+                } else {
+                    throw new Exception("on condition is wrong");
+                }
             }
+
         }
-
-
         for(Row rowLeft: tables.get(0)) {
             for(Row rowRight: tables.get(1)) {
-                Row rowCombined = combineRow(rowLeft, rowRight, onCondition, reverse);
+                Row rowCombined = combineRow(rowLeft, rowRight, onConditions, opAndOn, reverseList);
                 if(rowCombined!=null) {
                     combinedRowList.add(rowCombined);
                 }
@@ -88,31 +89,39 @@ public class QueryResult {
         this.metaInfos.add(new MetaInfo(table.getTableName(), table.columns));
     }
 
-    public Row combineRow(Row rowLeft, Row rowRight, Condition onCondition, boolean reversed) throws Exception {
-        MetaInfo metaInfo1, metaInfo2;
-        if(!reversed) {
-            metaInfo1 = metaInfos.get(0);
-            metaInfo2 = metaInfos.get(1);
-        }
-        else {
-            metaInfo1 = metaInfos.get(1);
-            metaInfo2 = metaInfos.get(0);
-        }
-        if(onCondition==null) {
+    public Row combineRow(Row rowLeft, Row rowRight, ArrayList<Condition> onConditionList, boolean opAndOn, ArrayList<Boolean> reversedList) throws Exception {
+        if(onConditionList==null) {
             Row row = new Row(rowLeft.getEntries());
             row.appendEntries(rowRight.getEntries());
             return row;
         }
-        else {
+
+        MetaInfo metaInfo1, metaInfo2;
+        boolean ok=opAndOn;
+        for(int i=0;i<onConditionList.size();i++){
+            boolean reversed = reversedList.get(i);
+            Condition onCondition = onConditionList.get(i);
+            if(!reversed) {
+                metaInfo1 = metaInfos.get(0);
+                metaInfo2 = metaInfos.get(1);
+            }
+            else {
+                metaInfo1 = metaInfos.get(1);
+                metaInfo2 = metaInfos.get(0);
+            }
+
             Comparable valueLeft = getExpressionValue(onCondition.expressionLeft, metaInfo1, rowLeft);
             Comparable valueRight = getExpressionValue(onCondition.expressionRight, metaInfo2, rowRight);
-            if(satisfy(onCondition.op, valueLeft, valueRight)) {
-                Row row = new Row(rowLeft.getEntries());
-                row.appendEntries(rowRight.getEntries());
-                return row;
-            }
-            return null;
+
+            if(opAndOn) ok = ok && satisfy(onCondition.op, valueLeft, valueRight);
+            else ok = ok || satisfy(onCondition.op, valueLeft, valueRight);
         }
+        if(ok) {
+            Row row = new Row(rowLeft.getEntries());
+            row.appendEntries(rowRight.getEntries());
+            return row;
+        }
+        return null;
 
     }
 

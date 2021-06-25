@@ -443,7 +443,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             return new TableQuery(
                     ctx.table_name(0).getText().toLowerCase(),
                     ctx.table_name(1).getText().toLowerCase(),
-                    visitMultiple_condition(ctx.multiple_condition()).get(0));
+                    visitMultiple_condition(ctx.multiple_condition()));
         }
     }
 
@@ -477,13 +477,17 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
             ArrayList<Table> tables2Query = new ArrayList<>();
             tables2Query.add(currTable);
+            boolean opAndOn=true;
+            if(tableQuery.conditions!=null && tableQuery.conditions.size()>1) {
+                opAndOn = ctx.table_query(0).multiple_condition().AND() != null;
+            }
             boolean opAnd=true;
             if(conditions!=null && conditions.size()>1) {
                 opAnd = ctx.multiple_condition().AND() != null;
             }
             if (tableQuery.tableNameRight != null) {
                 tables2Query.add(database.getTable(tableQuery.tableNameRight));
-                QueryResult queryResult = new QueryResult(tables2Query, tableQuery.condition);
+                QueryResult queryResult = new QueryResult(tables2Query, tableQuery.conditions, opAndOn);
                 return queryResult.selectQuery(resultColumnNameList, conditions, opAnd);
             }
             else {
