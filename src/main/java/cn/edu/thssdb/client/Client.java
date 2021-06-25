@@ -57,8 +57,7 @@ public class Client {
 
                 long startTime = System.currentTimeMillis();
                 for (String msg : msgList) {
-                    switch (msg.trim()) {
-                        // TODO: Add more commands here
+                    switch (msg.trim().toUpperCase()) {
                         case "":
                             break;
                         case Global.DISCONNECT:
@@ -78,7 +77,7 @@ public class Client {
                         default:
                             String[] elements = msg.split(" ");
                             int numElem = elements.length;
-                            if (Global.CONNECT.equals(elements[0])) {
+                            if (Global.CONNECT.equalsIgnoreCase(elements[0])) {
                                 if (numElem == 1) {
                                     connect("", "");
                                 } else if (numElem == 3) {
@@ -147,15 +146,12 @@ public class Client {
     }
 
     private static void executeStatement(String statement) {
-        // TODO
         ExecuteStatementReq req = new ExecuteStatementReq();
         req.setStatement(statement);
         req.setSessionId(sessionId);
         try {
             ExecuteStatementResp resp = client.executeStatement(req);
             if (resp.getStatus().getCode() == Global.SUCCESS_CODE) {
-//                println(resp.getStatus().toString());
-//                println("===================================");
                 println(resp.getStatus().getMsg());
             } else {
                 println("Execute statement \"" + statement + "\" failed: " + resp.getStatus().getMsg());

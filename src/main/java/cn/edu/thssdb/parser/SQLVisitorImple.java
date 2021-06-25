@@ -44,10 +44,12 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                 msg = visitCreate_db_stmt(ctx.create_db_stmt());
             } else if (ctx.create_user_stmt() != null) {
                 // TODO
+                msg = "Not implemented";
             } else if (ctx.drop_db_stmt() != null) {
                 msg = visitDrop_db_stmt(ctx.drop_db_stmt());
             } else if (ctx.drop_user_stmt() != null) {
                 // TODO
+                msg = "Not implemented";
             } else if (ctx.delete_stmt() != null) {
                 msg = visitDelete_stmt(ctx.delete_stmt());
             } else if (ctx.drop_table_stmt() != null) {
@@ -240,6 +242,9 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                         rows
                 );
             }
+        } catch (LockWaitTimeoutException e) {
+            session.releaseLocks();
+            return e.getMessage();
         } catch (Exception e) {
             return e.getMessage();
         } finally {
@@ -297,6 +302,9 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                     removedRows
                     );
             return "Delete succeed";
+        } catch (LockWaitTimeoutException e) {
+            session.releaseLocks();
+            return e.getMessage();
         } catch (Exception e) {
             return e.getMessage();
         } finally {
@@ -500,9 +508,9 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                 QueryResult queryResult = new QueryResult(tables2Query);
                 return queryResult.selectQuery(resultColumnNameList, conditions, opAnd);
             }
-
-
-
+        } catch (LockWaitTimeoutException e) {
+            session.releaseLocks();
+            return e.getMessage();
         } catch (Exception e) {
             return e.getMessage();
         } finally {
