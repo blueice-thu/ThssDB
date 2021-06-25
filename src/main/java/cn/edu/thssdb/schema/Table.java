@@ -304,7 +304,7 @@ public class Table implements Iterable<Row>, Serializable {
         return rows;
     }
 
-    public void update(Row oRow, String columnName, String newValue) throws Exception {
+    public Pair<Row, Row> update(Row oRow, String columnName, String newValue) throws Exception {
         int indexOfColumn = this.indexOfColumn(columnName);
         Comparable realValue = null;
         switch (columns.get(indexOfColumn).getType()) {
@@ -335,6 +335,7 @@ public class Table implements Iterable<Row>, Serializable {
         ArrayList<Entry> entries = nRow.getEntries();
         entries.set(indexOfColumn, updated_entry);
         update(oRow, nRow);
+        return new Pair<>(oRow, nRow);
     }
 
     public void update(Row oRow, Row nRow) throws Exception {

@@ -209,10 +209,22 @@ public class Manager {
             log.add(type.toString());
             log.add(dbName);
             log.add(tableName);
-            // insert只有一行
-            // update, delete 多行
-            for (Row row: rows) {
-                log.add(row.toString());
+
+            if (type == Statement.Type.INSERT) {
+                // insert只有一行
+                assert rows.size() == 1;
+                log.add(rows.get(0).toString());
+            } else if (type == Statement.Type.DELETE) {
+                // delete 多行
+                for (Row row: rows) {
+                    log.add(row.toString());
+                }
+            } else {
+                // update 两两配对(oRow, nRow)
+                assert rows.size() % 2 == 0;
+                for (Row row: rows) {
+                    log.add(row.toString());
+                }
             }
             logList.add(String.join(DELIMITER, log));
         }
@@ -313,7 +325,9 @@ public class Manager {
                     for (int i = 3; i < log.length; i++) {
                         columnsList.add(new Column(log[i]));
                     }
-                    database.create(tableName, (Column[]) columnsList.toArray());
+                    Column[] columns = new Column[columnsList.size()];
+                    columnsList.toArray(columns);
+                    database.create(tableName, columns);
                 } else {
                     database.drop(tableName);
                 }
@@ -336,8 +350,12 @@ public class Manager {
                         table.delete(new Row(log[i], table.columns));
                     }
                 } else {
-                    for (int i = 3; i < log.length; i++) {
-//                        table.update(new Row(log[i], table.columns));
+                    assert (log.length - 3) % 2 == 0;
+                    for (int i = 3; i < log.length; i += 2) {
+                        table.update(
+                                new Row(log[i], table.columns),  // oRow
+                                new Row(log[i+1], table.columns) // nRow
+                        );
                     }
                 }
             } catch (Exception e) {
