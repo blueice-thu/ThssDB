@@ -10,6 +10,7 @@ import cn.edu.thssdb.type.ConstraintType;
 import cn.edu.thssdb.utils.Global;
 import cn.edu.thssdb.utils.Pair;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -274,9 +275,13 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             if (ctx.multiple_condition() == null) {
                 removedRows = currTable.clear();
             } else {
-                Condition condition = visitMultiple_condition(ctx.multiple_condition());
+                ArrayList<Condition> conditions = visitMultiple_condition(ctx.multiple_condition());
                 QueryResult queryResult = new QueryResult(currTable);
-                ArrayList<Row> rowsToDelete = queryResult.getRowFromQuery(condition);
+                boolean opAnd = true;
+                if(conditions.size()>1) {
+                    opAnd = ctx.multiple_condition().AND() != null;
+                }
+                ArrayList<Row> rowsToDelete = queryResult.getRowFromQuery(conditions, opAnd);
                 if(rowsToDelete==null || rowsToDelete.size()==0) {
                     return "No row can delete";
                 }
@@ -301,9 +306,18 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     }
 
     @Override
-    public Condition visitMultiple_condition(SQLParser.Multiple_conditionContext ctx) {
+    public ArrayList<Condition> visitMultiple_condition(SQLParser.Multiple_conditionContext ctx) {
         if(ctx==null) return null;
-        return visitCondition(ctx.condition());
+        ArrayList<Condition> ret = new ArrayList<>();
+        if(ctx.condition()!=null) {
+            ret.add(visitCondition(ctx.condition()));
+        }
+        else {
+            ret.addAll(visitMultiple_condition(ctx.multiple_condition(0)));
+            ret.addAll(visitMultiple_condition(ctx.multiple_condition(1)));
+        }
+        return ret;
+
     }
 
     @Override
@@ -381,10 +395,13 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
         try {
             currTable.getXLockWithWait(session.getSessionId());
-            // TODO: fix后添加logger
-            Condition condition = visitMultiple_condition(ctx.multiple_condition());
+            ArrayList<Condition> conditions = visitMultiple_condition(ctx.multiple_condition());
             QueryResult queryResult = new QueryResult(currTable);
-            ArrayList<Row> rowsToUpdate = queryResult.getRowFromQuery(condition);
+            boolean opAnd = true;
+            if(conditions.size()>1) {
+                opAnd = ctx.multiple_condition().AND() != null;
+            }
+            ArrayList<Row> rowsToUpdate = queryResult.getRowFromQuery(conditions, opAnd);
             if(rowsToUpdate==null || rowsToUpdate.size()==0) {
                 return "No row can update";
             }
@@ -426,7 +443,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             return new TableQuery(
                     ctx.table_name(0).getText().toLowerCase(),
                     ctx.table_name(1).getText().toLowerCase(),
-                    visitMultiple_condition(ctx.multiple_condition()));
+                    visitMultiple_condition(ctx.multiple_condition()).get(0));
         }
     }
 
@@ -447,9 +464,9 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         TableQuery tableQuery = visitTable_query(ctx.table_query(0));
 
         // condition
-        Condition condition = null;
+        ArrayList<Condition> conditions = null;
         if (ctx.multiple_condition() != null) {
-            condition = visitMultiple_condition(ctx.multiple_condition());
+            conditions = visitMultiple_condition(ctx.multiple_condition());
         }
 
         Database database = session.getCurrentDatabase();
@@ -460,14 +477,18 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
             ArrayList<Table> tables2Query = new ArrayList<>();
             tables2Query.add(currTable);
+            boolean opAnd=true;
+            if(conditions!=null && conditions.size()>1) {
+                opAnd = ctx.multiple_condition().AND() != null;
+            }
             if (tableQuery.tableNameRight != null) {
                 tables2Query.add(database.getTable(tableQuery.tableNameRight));
                 QueryResult queryResult = new QueryResult(tables2Query, tableQuery.condition);
-                return queryResult.selectQuery(resultColumnNameList, condition);
+                return queryResult.selectQuery(resultColumnNameList, conditions, opAnd);
             }
             else {
                 QueryResult queryResult = new QueryResult(tables2Query);
-                return queryResult.selectQuery(resultColumnNameList, condition);
+                return queryResult.selectQuery(resultColumnNameList, conditions, opAnd);
             }
 
 

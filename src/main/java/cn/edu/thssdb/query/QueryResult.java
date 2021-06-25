@@ -129,13 +129,14 @@ public class QueryResult {
         this.msg = msg;
     }
 
-    public ArrayList<Row> getRowFromQuery(Condition condition) throws Exception {
-        return filterRows(condition, tables.get(0));
+    public ArrayList<Row> getRowFromQuery(ArrayList<Condition> conditions, boolean opAnd) throws Exception {
+            return filterRows(conditions, opAnd, tables.get(0));
+
     }
 
-    public String selectQuery(ArrayList<ColumnFullName> resultColumnNameList, Condition condition) throws Exception {
+    public String selectQuery(ArrayList<ColumnFullName> resultColumnNameList, ArrayList<Condition> conditions, boolean opAnd) throws Exception {
         if(this.tables.size()>1) {
-            return selectJoinQuery(resultColumnNameList, condition);
+            return selectJoinQuery(resultColumnNameList, conditions, opAnd);
         }
 
         ArrayList<Integer> inxList = new ArrayList<>();
@@ -154,7 +155,7 @@ public class QueryResult {
             }
         }
 
-        ArrayList<Row> selectedRows = filterRows(condition, tables.get(0));
+        ArrayList<Row> selectedRows = filterRows(conditions, opAnd, tables.get(0));
         StringJoiner joiner = new StringJoiner("\n");
         StringJoiner colNames = new StringJoiner(" | ");
         if(resultColumnNameList.size()==1 && resultColumnNameList.get(0).columnName==null) {
@@ -179,7 +180,7 @@ public class QueryResult {
         return joiner.toString();
     }
 
-    public String selectJoinQuery(ArrayList<ColumnFullName> resultColumnNameList, Condition condition) throws Exception {
+    public String selectJoinQuery(ArrayList<ColumnFullName> resultColumnNameList, ArrayList<Condition> condition, boolean opAnd) throws Exception {
         // 查询时有多个表的情况
         ArrayList<Integer> inxList = new ArrayList<>();
         // star
@@ -197,7 +198,7 @@ public class QueryResult {
             }
         }
 
-        ArrayList<Row> selectedRows = filterRows(condition, combinedRowList);
+        ArrayList<Row> selectedRows = filterRows(condition, opAnd, combinedRowList);
         // selectedRows = combinedRowList;
 
         StringJoiner joiner = new StringJoiner("\n");
@@ -226,23 +227,39 @@ public class QueryResult {
 
     }
 
-    private ArrayList<Row> filterRows(Condition condition, Table onlyTable) throws Exception {
+    private ArrayList<Row> filterRows(ArrayList<Condition> conditions, boolean opAnd, Table onlyTable) throws Exception {
         ArrayList<Row> rows = new ArrayList<>();
         onlyTable.readLock();
         for (Row row : onlyTable) {
-            if (condition == null || satisfyConditions(row, condition)) {
+            if (conditions == null) {
                 rows.add(row);
+            }
+            else {
+                boolean ok = opAnd;
+                for(Condition condition : conditions) {
+                    if(opAnd) ok = (ok && satisfyConditions(row, condition));
+                    else ok = (ok || satisfyConditions(row, condition));
+                }
+                if(ok) rows.add(row);
             }
         }
         onlyTable.readUnlock();
         return rows;
     }
 
-    private ArrayList<Row> filterRows(Condition condition, ArrayList<Row> combinedRowList) throws Exception {
+    private ArrayList<Row> filterRows(ArrayList<Condition> conditions, boolean opAnd, ArrayList<Row> combinedRowList) throws Exception {
         ArrayList<Row> rows = new ArrayList<>();
         for (Row row : combinedRowList) {
-            if (condition == null || satisfyConditions(row, condition)) {
+            if (conditions == null) {
                 rows.add(row);
+            }
+            else {
+                boolean ok = opAnd;
+                for(Condition condition : conditions) {
+                    if(opAnd) ok = (ok && satisfyConditions(row, condition));
+                    else ok = (ok || satisfyConditions(row, condition));
+                }
+                if(ok) rows.add(row);
             }
         }
         return rows;
