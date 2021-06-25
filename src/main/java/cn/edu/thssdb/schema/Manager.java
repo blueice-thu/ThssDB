@@ -156,7 +156,7 @@ public class Manager {
         private final ReentrantReadWriteLock lock;
         static final String DELIMITER = "|";
         static final int FLUSH_CACHE_SIZE = 100;
-
+        static final String LOG_FILE_PATH = Global.LOG_PATH + File.separator + "log";
         public Logger() {
             lock = new ReentrantReadWriteLock();
             logCnt = 0;
@@ -237,7 +237,7 @@ public class Manager {
                     System.err.println("Fail to write log: mkdirs error!");
                     return;
                 }
-                String fName = logDir + File.separator + "log";
+                String fName = LOG_FILE_PATH;
                 FileWriter f = new FileWriter(fName, true);
                 for (String s: logList) {
                     f.write(s + "\n");
@@ -245,7 +245,6 @@ public class Manager {
                 }
                 f.flush();
                 f.close();
-
                 if (logCnt >= FLUSH_CACHE_SIZE && manager.persist()) {
                     logCnt = 0;
                     File logFile = new File(fName);
@@ -263,8 +262,7 @@ public class Manager {
         public void redoLog(Manager manager) {
             try {
                 lock.writeLock().lock();
-                String fName = Global.LOG_PATH + File.separator + "log";
-                File f = new File(fName);
+                File f = new File(LOG_FILE_PATH);
                 if (!f.exists()) {
                     return;
                 }
