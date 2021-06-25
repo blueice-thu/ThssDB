@@ -1,6 +1,7 @@
 package cn.edu.thssdb.query;
 
 import cn.edu.thssdb.parser.statement.*;
+import cn.edu.thssdb.schema.Column;
 import cn.edu.thssdb.schema.Row;
 import cn.edu.thssdb.schema.Table;
 import cn.edu.thssdb.utils.Cell;
@@ -8,6 +9,7 @@ import cn.edu.thssdb.utils.Cell;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.StringJoiner;
 
 public class QueryResult {
 
@@ -27,11 +29,16 @@ public class QueryResult {
     }
 
     public QueryResult(ArrayList<Table> tables) {
-
+        this.tables = new ArrayList<>();
+        this.tables.addAll(tables);
+        this.metaInfoInfos = new ArrayList<>();
+        for(Table table: tables) {
+            this.metaInfoInfos.add(new MetaInfo(table.getTableName(), table.columns));
+        }
     }
 
     public QueryResult(Table table) {
-        this.tables = new ArrayList<Table>();
+        this.tables = new ArrayList<>();
         this.tables.add(table);
         this.metaInfoInfos = new ArrayList<MetaInfo>();
         this.metaInfoInfos.add(new MetaInfo(table.getTableName(), table.columns));
@@ -59,11 +66,46 @@ public class QueryResult {
         return filterRows(condition);
     }
 
-    // TODO: get return string from selected rows
-    public String selectQuery(Condition condition) throws Exception {
+    public String selectQuery(ArrayList<ColumnFullName> resultColumnNameList, Condition condition) throws Exception {
+        ArrayList<Integer> inxList = new ArrayList<>();
+        // star
+        if(resultColumnNameList.size()==1 && resultColumnNameList.get(0).columnName==null)
+        {
+            for(int i=0;i<tables.get(0).columns.size();i++) {
+                inxList.add(i);
+            }
+        }
+        else {
+            for(ColumnFullName colFullName: resultColumnNameList) {
+                int idx = tables.get(0).indexOfColumn(colFullName.columnName);
+                if(idx==-1) throw new Exception("No such column name in the table: "+colFullName.columnName);
+                inxList.add(idx);
+            }
+        }
+
+
         ArrayList<Row> selectedRows = filterRows(condition);
-        // TODO: get return string from selected rows
-        return null;
+        StringJoiner joiner = new StringJoiner("\n");
+        StringJoiner colNames = new StringJoiner(" | ");
+        if(resultColumnNameList.size()==1 && resultColumnNameList.get(0).columnName==null) {
+            for(Column col: tables.get(0).columns) {
+                colNames.add(col.getName());
+            }
+        }
+        else {
+            for(ColumnFullName colFullName: resultColumnNameList) {
+                colNames.add(colFullName.columnName);
+            }
+        }
+        joiner.add(colNames.toString());
+        for (Row row: selectedRows) {
+            StringJoiner values = new StringJoiner(" | ");
+            for(int idx: inxList) {
+                values.add(row.getEntries().get(idx).toString());
+            }
+            joiner.add(values.toString());
+        }
+        return joiner.toString();
     }
 
     private ArrayList<Row> filterRows(Condition conditions) throws Exception {
