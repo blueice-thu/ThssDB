@@ -66,7 +66,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             } else if (ctx.quit_stmt() != null) {
                 msg = visitQuit_stmt(ctx.quit_stmt());
             } else if (ctx.update_stmt() != null) {
-                // TODO
+                msg = visitUpdate_stmt(ctx.update_stmt());
             } else if (ctx.begin_transaction_stmt() != null) {
                 msg = visitBegin_transaction_stmt(ctx.begin_transaction_stmt());
             } else if (ctx.commit_stmt() != null) {
