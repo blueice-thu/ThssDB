@@ -168,6 +168,7 @@ public class QueryResult {
             }
         }
         joiner.add(colNames.toString());
+        joiner.add("------------------------------");
         for (Row row: selectedRows) {
             StringJoiner values = new StringJoiner(" | ");
             for(int idx: inxList) {
@@ -212,6 +213,7 @@ public class QueryResult {
             }
         }
         joiner.add(colNames.toString());
+        joiner.add("------------------------------");
         for (Row row: selectedRows) {
             StringJoiner values = new StringJoiner(" | ");
             for(int idx: inxList) {
@@ -266,7 +268,11 @@ public class QueryResult {
         // 字符比较或者数字比较
         int compareResult;
         if (valueLeft instanceof String) {
-            compareResult = valueLeft.toString().compareTo(valueRight.toString());
+            int n = valueRight.toString().length();
+            if (valueRight.toString().charAt(0) != '\'' || valueRight.toString().charAt(n - 1) != '\'') {
+                return false;
+            }
+            compareResult = valueLeft.toString().compareTo(valueRight.toString().substring(1, n - 1));
         } else {
             compareResult = Double.valueOf(valueLeft.toString()).compareTo(Double.valueOf(valueRight.toString()));
         }
