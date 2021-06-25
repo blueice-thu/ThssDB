@@ -8,19 +8,18 @@ import cn.edu.thssdb.schema.Table;
 import cn.edu.thssdb.utils.Cell;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.StringJoiner;
 
 public class QueryResult {
 
+    ArrayList<Row> combinedRowList;
+    ArrayList<String> columnFullName;
     private List<MetaInfo> metaInfos;
     private List<Table> tables;
     private String msg;
     private List<Integer> index;
     private List<Cell> attrs;
-    ArrayList<Row> combinedRowList;
-    ArrayList<String> columnFullName;
 
     public QueryResult() {
     }
@@ -35,7 +34,7 @@ public class QueryResult {
         this.tables = new ArrayList<>();
         this.tables.addAll(tables);
         this.metaInfos = new ArrayList<>();
-        for(Table table: tables) {
+        for (Table table : tables) {
             this.metaInfos.add(new MetaInfo(table.getTableName(), table.columns));
         }
     }
@@ -44,14 +43,14 @@ public class QueryResult {
         this.tables = new ArrayList<>();
         this.tables.addAll(tables);
         this.metaInfos = new ArrayList<>();
-        for(Table table: tables) {
+        for (Table table : tables) {
             this.metaInfos.add(new MetaInfo(table.getTableName(), table.columns));
         }
 
         combinedRowList = new ArrayList<>();
         ArrayList<Boolean> reverseList = new ArrayList<>();
-        if(onConditions!=null) {
-            for(Condition onCondition: onConditions){
+        if (onConditions != null) {
+            for (Condition onCondition : onConditions) {
                 if (((ColumnFullName) onCondition.expressionLeft.comparerLeft).tableName.equals(metaInfos.get(0).getTableName()) &&
                         ((ColumnFullName) onCondition.expressionRight.comparerLeft).tableName.equals(metaInfos.get(1).getTableName())) {
                     reverseList.add(false);
@@ -64,20 +63,20 @@ public class QueryResult {
             }
 
         }
-        for(Row rowLeft: tables.get(0)) {
-            for(Row rowRight: tables.get(1)) {
+        for (Row rowLeft : tables.get(0)) {
+            for (Row rowRight : tables.get(1)) {
                 Row rowCombined = combineRow(rowLeft, rowRight, onConditions, opAndOn, reverseList);
-                if(rowCombined!=null) {
+                if (rowCombined != null) {
                     combinedRowList.add(rowCombined);
                 }
             }
         }
 
         columnFullName = new ArrayList<>();
-        for(Column col : metaInfos.get(0).getColumns()) {
+        for (Column col : metaInfos.get(0).getColumns()) {
             columnFullName.add(tables.get(0).getTableName() + "." + col.getName());
         }
-        for(Column col : metaInfos.get(1).getColumns()) {
+        for (Column col : metaInfos.get(1).getColumns()) {
             columnFullName.add(tables.get(1).getTableName() + "." + col.getName());
         }
 
@@ -91,22 +90,21 @@ public class QueryResult {
     }
 
     public Row combineRow(Row rowLeft, Row rowRight, ArrayList<Condition> onConditionList, boolean opAndOn, ArrayList<Boolean> reversedList) throws Exception {
-        if(onConditionList==null) {
+        if (onConditionList == null) {
             Row row = new Row(rowLeft.getEntries());
             row.appendEntries(rowRight.getEntries());
             return row;
         }
 
         MetaInfo metaInfo1, metaInfo2;
-        boolean ok=opAndOn;
-        for(int i=0;i<onConditionList.size();i++){
+        boolean ok = opAndOn;
+        for (int i = 0; i < onConditionList.size(); i++) {
             boolean reversed = reversedList.get(i);
             Condition onCondition = onConditionList.get(i);
-            if(!reversed) {
+            if (!reversed) {
                 metaInfo1 = metaInfos.get(0);
                 metaInfo2 = metaInfos.get(1);
-            }
-            else {
+            } else {
                 metaInfo1 = metaInfos.get(1);
                 metaInfo2 = metaInfos.get(0);
             }
@@ -114,10 +112,10 @@ public class QueryResult {
             Comparable valueLeft = getExpressionValue(onCondition.expressionLeft, metaInfo1, rowLeft);
             Comparable valueRight = getExpressionValue(onCondition.expressionRight, metaInfo2, rowRight);
 
-            if(opAndOn) ok = ok && satisfy(onCondition.op, valueLeft, valueRight);
+            if (opAndOn) ok = ok && satisfy(onCondition.op, valueLeft, valueRight);
             else ok = ok || satisfy(onCondition.op, valueLeft, valueRight);
         }
-        if(ok) {
+        if (ok) {
             Row row = new Row(rowLeft.getEntries());
             row.appendEntries(rowRight.getEntries());
             return row;
@@ -140,27 +138,25 @@ public class QueryResult {
     }
 
     public ArrayList<Row> getRowFromQuery(ArrayList<Condition> conditions, boolean opAnd) throws Exception {
-            return filterRows(conditions, opAnd, tables.get(0));
+        return filterRows(conditions, opAnd, tables.get(0));
 
     }
 
     public String selectQuery(ArrayList<ColumnFullName> resultColumnNameList, ArrayList<Condition> conditions, boolean opAnd) throws Exception {
-        if(this.tables.size()>1) {
+        if (this.tables.size() > 1) {
             return selectJoinQuery(resultColumnNameList, conditions, opAnd);
         }
 
         ArrayList<Integer> inxList = new ArrayList<>();
         // star
-        if(resultColumnNameList.size()==1 && resultColumnNameList.get(0).columnName==null)
-        {
-            for(int i=0;i<tables.get(0).columns.size();i++) {
+        if (resultColumnNameList.size() == 1 && resultColumnNameList.get(0).columnName == null) {
+            for (int i = 0; i < tables.get(0).columns.size(); i++) {
                 inxList.add(i);
             }
-        }
-        else {
-            for(ColumnFullName colFullName: resultColumnNameList) {
+        } else {
+            for (ColumnFullName colFullName : resultColumnNameList) {
                 int idx = tables.get(0).indexOfColumn(colFullName.columnName);
-                if(idx==-1) throw new Exception("No such column name in the table: "+colFullName.columnName);
+                if (idx == -1) throw new Exception("No such column name in the table: " + colFullName.columnName);
                 inxList.add(idx);
             }
         }
@@ -168,26 +164,24 @@ public class QueryResult {
         ArrayList<Row> selectedRows = filterRows(conditions, opAnd, tables.get(0));
         StringJoiner joiner = new StringJoiner("\n");
         StringJoiner colNames = new StringJoiner(" | ");
-        if(resultColumnNameList.size()==1 && resultColumnNameList.get(0).columnName==null) {
-            for(Column col: tables.get(0).columns) {
+        if (resultColumnNameList.size() == 1 && resultColumnNameList.get(0).columnName == null) {
+            for (Column col : tables.get(0).columns) {
                 colNames.add(col.getName());
             }
-        }
-        else {
-            for(ColumnFullName colFullName: resultColumnNameList) {
+        } else {
+            for (ColumnFullName colFullName : resultColumnNameList) {
                 colNames.add(colFullName.columnName);
             }
         }
         joiner.add(colNames.toString());
         joiner.add("------------------------------");
-        for (Row row: selectedRows) {
+        for (Row row : selectedRows) {
             StringJoiner values = new StringJoiner(" | ");
-            for(int idx: inxList) {
+            for (int idx : inxList) {
                 Entry entry = row.getEntries().get(idx);
-                if(entry.value!=null) {
+                if (entry.value != null) {
                     values.add(entry.toString());
-                }
-                else {
+                } else {
                     values.add("null");
                 }
 
@@ -201,16 +195,14 @@ public class QueryResult {
         // 查询时有多个表的情况
         ArrayList<Integer> inxList = new ArrayList<>();
         // star
-        if(resultColumnNameList.size()==1 && resultColumnNameList.get(0).columnName==null)
-        {
-            for(int i=0;i<columnFullName.size();i++) {
+        if (resultColumnNameList.size() == 1 && resultColumnNameList.get(0).columnName == null) {
+            for (int i = 0; i < columnFullName.size(); i++) {
                 inxList.add(i);
             }
-        }
-        else {
-            for(ColumnFullName colFullName: resultColumnNameList) {
+        } else {
+            for (ColumnFullName colFullName : resultColumnNameList) {
                 int idx = columnFullName.indexOf(colFullName.tableName + "." + colFullName.columnName);
-                if(idx==-1) throw new Exception("No such column name in the table: " + colFullName.columnName);
+                if (idx == -1) throw new Exception("No such column name in the table: " + colFullName.columnName);
                 inxList.add(idx);
             }
         }
@@ -220,21 +212,20 @@ public class QueryResult {
 
         StringJoiner joiner = new StringJoiner("\n");
         StringJoiner colNames = new StringJoiner(" | ");
-        if(resultColumnNameList.size()==1 && resultColumnNameList.get(0).columnName==null) {
-            for(String col: columnFullName) {
+        if (resultColumnNameList.size() == 1 && resultColumnNameList.get(0).columnName == null) {
+            for (String col : columnFullName) {
                 colNames.add(col);
             }
-        }
-        else {
-            for(ColumnFullName colFullName: resultColumnNameList) {
+        } else {
+            for (ColumnFullName colFullName : resultColumnNameList) {
                 colNames.add(colFullName.tableName + "." + colFullName.columnName);
             }
         }
         joiner.add(colNames.toString());
         joiner.add("------------------------------");
-        for (Row row: selectedRows) {
+        for (Row row : selectedRows) {
             StringJoiner values = new StringJoiner(" | ");
-            for(int idx: inxList) {
+            for (int idx : inxList) {
                 values.add(row.getEntries().get(idx).toString());
             }
             joiner.add(values.toString());
@@ -250,14 +241,13 @@ public class QueryResult {
         for (Row row : onlyTable) {
             if (conditions == null) {
                 rows.add(row);
-            }
-            else {
+            } else {
                 boolean ok = opAnd;
-                for(Condition condition : conditions) {
-                    if(opAnd) ok = (ok && satisfyConditions(row, condition));
+                for (Condition condition : conditions) {
+                    if (opAnd) ok = (ok && satisfyConditions(row, condition));
                     else ok = (ok || satisfyConditions(row, condition));
                 }
-                if(ok) rows.add(row);
+                if (ok) rows.add(row);
             }
         }
         onlyTable.readUnlock();
@@ -269,14 +259,13 @@ public class QueryResult {
         for (Row row : combinedRowList) {
             if (conditions == null) {
                 rows.add(row);
-            }
-            else {
+            } else {
                 boolean ok = opAnd;
-                for(Condition condition : conditions) {
-                    if(opAnd) ok = (ok && satisfyConditions(row, condition));
+                for (Condition condition : conditions) {
+                    if (opAnd) ok = (ok && satisfyConditions(row, condition));
                     else ok = (ok || satisfyConditions(row, condition));
                 }
-                if(ok) rows.add(row);
+                if (ok) rows.add(row);
             }
         }
         return rows;
@@ -284,21 +273,20 @@ public class QueryResult {
 
     private boolean satisfyConditions(Row row, Condition condition) throws Exception {
         String op = condition.op;
-        if(metaInfos.size() == 1) { // 左属性 右值
-            Comparable valueLeft = getExpressionValue(condition.expressionLeft, metaInfos.get(0),   row); // attrName
-            Comparable valueRight = getExpressionValue(condition.expressionRight, null,  row); // attrValue
+        if (metaInfos.size() == 1) { // 左属性 右值
+            Comparable valueLeft = getExpressionValue(condition.expressionLeft, metaInfos.get(0), row); // attrName
+            Comparable valueRight = getExpressionValue(condition.expressionRight, null, row); // attrValue
             return satisfy(op, valueLeft, valueRight);
-        }
-        else { // 可能均为属性
-            Comparable valueLeft = getExpressionValue(condition.expressionLeft, null,  row); // attrName
-            Comparable valueRight = getExpressionValue(condition.expressionRight, null,  row); // attrValue
+        } else { // 可能均为属性
+            Comparable valueLeft = getExpressionValue(condition.expressionLeft, null, row); // attrName
+            Comparable valueRight = getExpressionValue(condition.expressionRight, null, row); // attrValue
             return satisfy(op, valueLeft, valueRight);
         }
 
 
     }
 
-    private boolean satisfy(String op, Comparable valueLeft, Comparable valueRight){
+    private boolean satisfy(String op, Comparable valueLeft, Comparable valueRight) {
         // 字符比较或者数字比较
         int compareResult;
         if (valueLeft instanceof String) {
@@ -339,7 +327,7 @@ public class QueryResult {
         if (comparer.get_type().equals(Comparer.Type.COLUMN_FULL_NAME)) {
             ColumnFullName fullName = (ColumnFullName) comparer;
             int index = -1;
-            if(metainfo!=null) index = metainfo.columnFind(fullName.columnName);
+            if (metainfo != null) index = metainfo.columnFind(fullName.columnName);
             else {
                 index = columnFullName.indexOf(fullName.tableName + "." + fullName.columnName);
             }

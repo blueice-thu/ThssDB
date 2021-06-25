@@ -6,14 +6,17 @@ import cn.edu.thssdb.parser.statement.Statement;
 import cn.edu.thssdb.utils.Global;
 
 import java.io.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Manager {
     private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-    private HashMap<String, Database> databases = new HashMap<>();
-    private final HashSet<Long> transactionSessions = new HashSet<>();
     public final Logger logger = new Logger();
+    private final HashSet<Long> transactionSessions = new HashSet<>();
+    private HashMap<String, Database> databases = new HashMap<>();
 
     public Manager() throws IOException, ClassNotFoundException {
         recover();
@@ -186,11 +189,12 @@ public class Manager {
     }
 
     public static class Logger {
-        private int logCnt;
-        private final ReentrantReadWriteLock lock;
         static final String DELIMITER = "|";
         static final int FLUSH_CACHE_SIZE = 100;
         static final String LOG_FILE_PATH = Global.LOG_PATH + File.separator + "log";
+        private final ReentrantReadWriteLock lock;
+        private int logCnt;
+
         public Logger() {
             lock = new ReentrantReadWriteLock();
             logCnt = 0;
@@ -220,7 +224,7 @@ public class Manager {
             log.add(dbName);
             log.add(tableName);
             if (type == Statement.Type.CREATE_TABLE) {
-                for (Column column: columnsList) {
+                for (Column column : columnsList) {
                     log.add(column.toString());
                 }
             }
@@ -233,7 +237,7 @@ public class Manager {
                 String dbName,
                 String tableName,
                 ArrayList<Row> rows
-                ) {
+        ) {
             assert rows != null;
             if (rows.size() < 1) return;
             ArrayList<String> log = new ArrayList<>();
@@ -250,13 +254,13 @@ public class Manager {
                 log.add(rows.get(0).toString());
             } else if (type == Statement.Type.DELETE) {
                 // delete 多行
-                for (Row row: rows) {
+                for (Row row : rows) {
                     log.add(row.toString());
                 }
             } else {
                 // update 两两配对(oRow, nRow)
                 assert rows.size() % 2 == 0;
-                for (Row row: rows) {
+                for (Row row : rows) {
                     log.add(row.toString());
                 }
             }
@@ -273,7 +277,7 @@ public class Manager {
                 }
                 String fName = LOG_FILE_PATH;
                 FileWriter f = new FileWriter(fName, true);
-                for (String s: logList) {
+                for (String s : logList) {
                     f.write(s + "\n");
                     logCnt++;
                 }
@@ -337,8 +341,7 @@ public class Manager {
             try {
                 if (type == Statement.Type.CREATE_DATABASE) {
                     manager.createDatabaseIfNotExists(log[1]);
-                }
-                else {
+                } else {
                     manager.deleteDatabase(log[1]);
                 }
             } catch (Exception e) {
@@ -363,7 +366,7 @@ public class Manager {
                 } else {
                     database.drop(tableName);
                 }
-            }  catch (Exception e) {
+            } catch (Exception e) {
                 System.err.println(e.getMessage());
             }
         }
@@ -386,7 +389,7 @@ public class Manager {
                     for (int i = 3; i < log.length; i += 2) {
                         table.update(
                                 new Row(log[i], table.columns),  // oRow
-                                new Row(log[i+1], table.columns) // nRow
+                                new Row(log[i + 1], table.columns) // nRow
                         );
                     }
                 }

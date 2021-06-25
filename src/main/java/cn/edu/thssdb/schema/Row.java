@@ -3,7 +3,6 @@ package cn.edu.thssdb.schema;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.StringJoiner;
 
 public class Row implements Serializable {
     private static final long serialVersionUID = -5809782578272943999L;
@@ -20,7 +19,7 @@ public class Row implements Serializable {
             throw new Exception("ColumnValueSizeNotMatchedException");
         }
         this.entries = new ArrayList<>();
-        for (int i = 0;i < attrListStr.length;i++) {
+        for (int i = 0; i < attrListStr.length; i++) {
             switch (columnsList.get(i).getType()) {
                 case INT:
                 case LONG:

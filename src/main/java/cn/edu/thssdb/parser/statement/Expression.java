@@ -4,6 +4,7 @@ public class Expression {
     public Comparer comparerLeft;
     public Comparer comparerRight = null;
     public OP op = null;
+
     public Expression(Comparer comparerLeft) {
         this.comparerLeft = comparerLeft;
     }

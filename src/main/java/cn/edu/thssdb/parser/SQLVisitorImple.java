@@ -7,10 +7,8 @@ import cn.edu.thssdb.schema.*;
 import cn.edu.thssdb.service.Session;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.type.ConstraintType;
-import cn.edu.thssdb.utils.Global;
 import cn.edu.thssdb.utils.Pair;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -234,7 +232,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             for (int i = 0; i < numValue; i++) {
                 String[] values = visitValue_entry(ctx.value_entry(i));
                 ArrayList<Row> rows = new ArrayList<>();
-                if (columnNames != null && columnNames.length>0) {
+                if (columnNames != null && columnNames.length > 0) {
                     rows.add(currTable.insert(columnNames, values));
                 } else {
                     rows.add(currTable.insert(values));
@@ -286,11 +284,11 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                 ArrayList<Condition> conditions = visitMultiple_condition(ctx.multiple_condition());
                 QueryResult queryResult = new QueryResult(currTable);
                 boolean opAnd = true;
-                if(conditions.size()>1) {
+                if (conditions.size() > 1) {
                     opAnd = ctx.multiple_condition().AND() != null;
                 }
                 ArrayList<Row> rowsToDelete = queryResult.getRowFromQuery(conditions, opAnd);
-                if(rowsToDelete==null || rowsToDelete.size()==0) {
+                if (rowsToDelete == null || rowsToDelete.size() == 0) {
                     return "No row can delete";
                 }
                 for (Row row : rowsToDelete) {
@@ -304,7 +302,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                     dbName,
                     tableName,
                     removedRows
-                    );
+            );
             return "Delete succeed";
         } catch (LockWaitTimeoutException e) {
             throw e;
@@ -318,12 +316,11 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
     @Override
     public ArrayList<Condition> visitMultiple_condition(SQLParser.Multiple_conditionContext ctx) {
-        if(ctx==null) return null;
+        if (ctx == null) return null;
         ArrayList<Condition> ret = new ArrayList<>();
-        if(ctx.condition()!=null) {
+        if (ctx.condition() != null) {
             ret.add(visitCondition(ctx.condition()));
-        }
-        else {
+        } else {
             ret.addAll(visitMultiple_condition(ctx.multiple_condition(0)));
             ret.addAll(visitMultiple_condition(ctx.multiple_condition(1)));
         }
@@ -409,22 +406,22 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         try {
             currTable.getXLockWithWait(session.getSessionId());
             session.xTables.add(currTable.getTableName());
-            
+
             ArrayList<Condition> conditions = visitMultiple_condition(ctx.multiple_condition());
             QueryResult queryResult = new QueryResult(currTable);
             boolean opAnd = true;
-            if(conditions.size()>1) {
+            if (conditions.size() > 1) {
                 opAnd = ctx.multiple_condition().AND() != null;
             }
             ArrayList<Row> rowsToUpdate = queryResult.getRowFromQuery(conditions, opAnd);
-            if(rowsToUpdate==null || rowsToUpdate.size()==0) {
+            if (rowsToUpdate == null || rowsToUpdate.size() == 0) {
                 return "No row can update";
             }
             String dbName = session.getCurrentDatabaseName();
             ArrayList<Row> rows = new ArrayList<>();
             for (Row row : rowsToUpdate) {
                 String columnName = ctx.column_name().getText().toLowerCase();
-                Pair<Row,Row> rowRowPair = currTable.update(row, columnName, ctx.expression().getText());
+                Pair<Row, Row> rowRowPair = currTable.update(row, columnName, ctx.expression().getText());
                 rows.add(rowRowPair.getLeft());
                 rows.add(rowRowPair.getRight());
             }
@@ -434,11 +431,10 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                     dbName,
                     tableName,
                     rows
-                    );
+            );
         } catch (Exception e) {
             return e.getMessage();
-        }
-        finally {
+        } finally {
             if (!manager.isTransaction(session.getSessionId()))
                 currTable.removeXLock(session.getSessionId());
         }
@@ -494,20 +490,19 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
             ArrayList<Table> tables2Query = new ArrayList<>();
             tables2Query.add(currTable);
-            boolean opAndOn=true;
-            if(tableQuery.conditions!=null && tableQuery.conditions.size()>1) {
+            boolean opAndOn = true;
+            if (tableQuery.conditions != null && tableQuery.conditions.size() > 1) {
                 opAndOn = ctx.table_query(0).multiple_condition().AND() != null;
             }
-            boolean opAnd=true;
-            if(conditions!=null && conditions.size()>1) {
+            boolean opAnd = true;
+            if (conditions != null && conditions.size() > 1) {
                 opAnd = ctx.multiple_condition().AND() != null;
             }
             if (tableQuery.tableNameRight != null) {
                 tables2Query.add(database.getTable(tableQuery.tableNameRight));
                 QueryResult queryResult = new QueryResult(tables2Query, tableQuery.conditions, opAndOn);
                 return queryResult.selectQuery(resultColumnNameList, conditions, opAnd);
-            }
-            else {
+            } else {
                 QueryResult queryResult = new QueryResult(tables2Query);
                 return queryResult.selectQuery(resultColumnNameList, conditions, opAnd);
             }
@@ -647,7 +642,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         Table currTable = session.getCurrentDatabase().getTable(tableName);
         StringJoiner joiner = new StringJoiner("\n");
         joiner.add(String.format("%-8s | %-8s | %-8s | %-8s | %-8s", "name", "type", "primary", "notNull", "maxLength"));
-        for (Column column: currTable.columns) {
+        for (Column column : currTable.columns) {
             joiner.add(column.toFormatString());
         }
         return joiner.toString();

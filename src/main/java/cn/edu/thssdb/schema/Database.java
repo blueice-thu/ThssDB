@@ -32,7 +32,7 @@ public class Database implements Serializable {
             ObjectOutputStream objectOut = new ObjectOutputStream(new FileOutputStream(filename));
             for (Map.Entry<String, Table> tableEntry : tables.entrySet()) {
                 Table table = tableEntry.getValue();
-                BPlusTree<Entry, Row> tmp_idx =  table.index;
+                BPlusTree<Entry, Row> tmp_idx = table.index;
                 table.index = new BPlusTree<>();
                 objectOut.writeObject(tableEntry.getValue());
                 table.index = tmp_idx;

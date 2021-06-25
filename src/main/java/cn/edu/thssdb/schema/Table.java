@@ -174,7 +174,7 @@ public class Table implements Iterable<Row>, Serializable {
     }
 
     public Row insert(String[] columnNames, String[] values) throws Exception {
-        if (columnNames == null || values == null || columnNames.length==0 || values.length==0) {
+        if (columnNames == null || values == null || columnNames.length == 0 || values.length == 0) {
             throw new Exception("columnNames and values is empty");
         }
         if (columnNames.length != values.length) {
@@ -351,11 +351,10 @@ public class Table implements Iterable<Row>, Serializable {
             try {
                 lock.writeLock().lock();
                 // primary key update
-                if(oRow.getEntries().get(primaryIndex)!=nRow.getEntries().get(primaryIndex)) {
+                if (oRow.getEntries().get(primaryIndex) != nRow.getEntries().get(primaryIndex)) {
                     index.put(nRow.getEntries().get(primaryIndex), nRow);
                     index.remove(primary_key);
-                }
-                else {
+                } else {
                     index.update(primary_key, nRow);
                 }
             } finally {

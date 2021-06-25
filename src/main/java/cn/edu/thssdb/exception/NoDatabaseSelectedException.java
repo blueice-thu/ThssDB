@@ -1,7 +1,9 @@
 package cn.edu.thssdb.exception;
 
 public class NoDatabaseSelectedException extends MyException {
-    public NoDatabaseSelectedException() {super();}
+    public NoDatabaseSelectedException() {
+        super();
+    }
 
     @Override
     public String getMessage() {
