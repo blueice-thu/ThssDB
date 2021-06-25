@@ -164,6 +164,11 @@ public class Manager {
         transactionSessions.remove(sessionId);
     }
 
+    public void rollbackTransaction(Long sessionId) {
+        transactionSessions.remove(sessionId);
+        // Need to roll back
+    }
+
     private static class ManagerHolder {
         private static Manager INSTANCE = null;
 

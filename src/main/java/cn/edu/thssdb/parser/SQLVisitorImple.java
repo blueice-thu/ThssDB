@@ -76,6 +76,11 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                 msg = visitCommit_stmt(ctx.commit_stmt());
             } else
                 msg = "Unknown command";
+        } catch (LockWaitTimeoutException e) {
+            session.releaseLocks();
+            if (manager.isTransaction(session.getSessionId()))
+                manager.rollbackTransaction(session.getSessionId());
+            msg = e.getMessage();
         } catch (Exception e) {
             msg = e.getMessage();
         }
@@ -243,8 +248,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                 );
             }
         } catch (LockWaitTimeoutException e) {
-            session.releaseLocks();
-            return e.getMessage();
+            throw e;
         } catch (Exception e) {
             return e.getMessage();
         } finally {
@@ -303,8 +307,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                     );
             return "Delete succeed";
         } catch (LockWaitTimeoutException e) {
-            session.releaseLocks();
-            return e.getMessage();
+            throw e;
         } catch (Exception e) {
             return e.getMessage();
         } finally {
@@ -509,8 +512,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                 return queryResult.selectQuery(resultColumnNameList, conditions, opAnd);
             }
         } catch (LockWaitTimeoutException e) {
-            session.releaseLocks();
-            return e.getMessage();
+            throw e;
         } catch (Exception e) {
             return e.getMessage();
         } finally {
