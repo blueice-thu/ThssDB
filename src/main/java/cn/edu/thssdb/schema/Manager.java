@@ -337,7 +337,7 @@ public class Manager {
                     }
                 } else {
                     for (int i = 3; i < log.length; i++) {
-                        table.update(new Row(log[i], table.columns));
+//                        table.update(new Row(log[i], table.columns));
                     }
                 }
             } catch (Exception e) {

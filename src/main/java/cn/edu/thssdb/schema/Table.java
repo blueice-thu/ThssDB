@@ -304,8 +304,41 @@ public class Table implements Iterable<Row>, Serializable {
         return rows;
     }
 
-    public void update(Row row) throws Exception {
-        Entry primary_key = row.getEntries().get(primaryIndex);
+    public void update(Row oRow, String columnName, String newValue) throws Exception {
+        int indexOfColumn = this.indexOfColumn(columnName);
+        Comparable realValue = null;
+        switch (columns.get(indexOfColumn).getType()) {
+            case INT:
+                realValue = Integer.parseInt(newValue);
+                break;
+            case LONG:
+                realValue = Long.parseLong(newValue);
+                break;
+            case FLOAT:
+                realValue = Float.parseFloat(newValue);
+                break;
+            case DOUBLE:
+                realValue = Double.parseDouble(newValue);
+                break;
+            case STRING:
+                int n = newValue.length();
+                if (newValue.charAt(0) != '\'' || newValue.charAt(n - 1) != '\'') {
+                    throw new Exception("String format wrong");
+                }
+                realValue = newValue.substring(1, n - 1);
+                break;
+            default:
+                throw new Exception("TODO");
+        }
+        Entry updated_entry = new Entry(realValue);
+        Row nRow = new Row(oRow.getEntries());
+        ArrayList<Entry> entries = nRow.getEntries();
+        entries.set(indexOfColumn, updated_entry);
+        update(oRow, nRow);
+    }
+
+    public void update(Row oRow, Row nRow) throws Exception {
+        Entry primary_key = oRow.getEntries().get(primaryIndex);
         boolean has_exist;
         try {
             lock.readLock().lock();
@@ -316,8 +349,14 @@ public class Table implements Iterable<Row>, Serializable {
         if (has_exist) {
             try {
                 lock.writeLock().lock();
-                Entry entry = row.getEntries().get(primaryIndex);
-                index.update(entry, row);
+                // primary key update
+                if(oRow.getEntries().get(primaryIndex)!=nRow.getEntries().get(primaryIndex)) {
+                    index.put(nRow.getEntries().get(primaryIndex), nRow);
+                    index.remove(primary_key);
+                }
+                else {
+                    index.update(primary_key, nRow);
+                }
             } finally {
                 lock.writeLock().unlock();
             }

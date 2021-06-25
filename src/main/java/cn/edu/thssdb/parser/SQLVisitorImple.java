@@ -66,7 +66,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             } else if (ctx.quit_stmt() != null) {
                 msg = visitQuit_stmt(ctx.quit_stmt());
             } else if (ctx.update_stmt() != null) {
-                // TODO
+                msg = visitUpdate_stmt(ctx.update_stmt());
             } else if (ctx.begin_transaction_stmt() != null) {
                 msg = visitBegin_transaction_stmt(ctx.begin_transaction_stmt());
             } else if (ctx.commit_stmt() != null) {
@@ -284,6 +284,9 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                 Condition condition = visitMultiple_condition(ctx.multiple_condition());
                 QueryResult queryResult = new QueryResult(currTable);
                 ArrayList<Row> rowsToDelete = queryResult.getRowFromQuery(condition);
+                if(rowsToDelete==null || rowsToDelete.size()==0) {
+                    return "No row can delete";
+                }
                 for (Row row : rowsToDelete) {
                     currTable.delete(row);
                 }
@@ -390,20 +393,16 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         }
 
         try {
-            if (ctx.multiple_condition() == null) {
-                currTable.clear(); // TODO: 是不是有问题？
-                                   // TODO: 似乎确实有问题，fix后添加logger
-            } else {
-                Condition condition = visitMultiple_condition(ctx.multiple_condition());
-                QueryResult queryResult = new QueryResult(currTable);
-                ArrayList<Row> rowsToUpdate = queryResult.getRowFromQuery(condition);
-                for (Row row : rowsToUpdate) {
-                    String columnName = ctx.column_name().getText().toLowerCase();
-                    int indexOfColumn = currTable.indexOfColumn(columnName);
-                    ArrayList<Entry> entries = row.getEntries();
-                    entries.set(indexOfColumn, (Entry) ((LiteralValue) visitExpression(ctx.expression()).comparerLeft).value);
-                    currTable.update(row);
-                }
+            // TODO: fix后添加logger
+            Condition condition = visitMultiple_condition(ctx.multiple_condition());
+            QueryResult queryResult = new QueryResult(currTable);
+            ArrayList<Row> rowsToUpdate = queryResult.getRowFromQuery(condition);
+            if(rowsToUpdate==null || rowsToUpdate.size()==0) {
+                return "No row can update";
+            }
+            for (Row row : rowsToUpdate) {
+                String columnName = ctx.column_name().getText().toLowerCase();
+                currTable.update(row, columnName, ctx.expression().getText());
             }
         } catch (Exception e) {
             return e.getMessage();
@@ -411,7 +410,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         finally {
             currTable.removeXLock(session.getSessionId());
         }
-        return "Delete succeed";
+        return "Update succeed";
     }
 
 
@@ -459,6 +458,8 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         }
 
         try {
+//            QueryResult queryResult = new QueryResult(currTable);
+//            ArrayList<Row> rowsToDelete = queryResult.getRowFromQuery(condition);
             Database database = session.getCurrentDatabase();
             ArrayList<Table> tables2Query = new ArrayList<>();
             tables2Query.add(database.getTable(tableQuery.tableNameLeft));
@@ -467,7 +468,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             }
             QueryResult queryResult = new QueryResult(tables2Query);
 
-//            queryResult.selectQuery(resultColumnNameList, tableQuery, condition);
+            // queryResult.selectQuery(resultColumnNameList, tableQuery, condition);
             return "Success"; // TODO: return
 
         } catch (Exception e) {
