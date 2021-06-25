@@ -154,8 +154,8 @@ public class Client {
         try {
             ExecuteStatementResp resp = client.executeStatement(req);
             if (resp.getStatus().getCode() == Global.SUCCESS_CODE) {
-                println(resp.getStatus().toString());
-                println("===================================");
+//                println(resp.getStatus().toString());
+//                println("===================================");
                 println(resp.getStatus().getMsg());
             } else {
                 println("Execute statement \"" + statement + "\" failed: " + resp.getStatus().getMsg());

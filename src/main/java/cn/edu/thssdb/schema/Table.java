@@ -77,6 +77,10 @@ public class Table implements Iterable<Row>, Serializable {
                 }
             }
         } else {
+            if (sLockOwner.size() == 0) {
+                xLockOwner = sessionId;
+                return true;
+            }
             if (!(sLockOwner.size() == 1 && sLockOwner.get(0).equals(sessionId)))
                 return false;
             else {
@@ -96,7 +100,7 @@ public class Table implements Iterable<Row>, Serializable {
                     break;
             }
             if (i == Global.LOCK_TRY_TIME)
-                throw new LockWaitTimeoutException();
+                throw new LockWaitTimeoutException(tableName);
         }
     }
 
@@ -106,6 +110,8 @@ public class Table implements Iterable<Row>, Serializable {
                 sLockOwner.add(sessionId);
             return true;
         }
+        if (xLockOwner.equals(sessionId))
+            return true;
         return false;
     }
 
@@ -118,7 +124,7 @@ public class Table implements Iterable<Row>, Serializable {
                     break;
             }
             if (i == Global.LOCK_TRY_TIME)
-                throw new LockWaitTimeoutException();
+                throw new LockWaitTimeoutException(tableName);
         }
     }
 

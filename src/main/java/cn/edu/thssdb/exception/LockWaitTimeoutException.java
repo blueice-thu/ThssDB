@@ -6,6 +6,8 @@ public class LockWaitTimeoutException extends MyException {
 
     @Override
     public String getMessage() {
-        return "Exception: wait lock timeout!";
+        if (key == null)
+            return "Exception: wait lock timeout!";
+        return "Exception: wait lock of \"" + key + "\" timeout!";
     }
 }
