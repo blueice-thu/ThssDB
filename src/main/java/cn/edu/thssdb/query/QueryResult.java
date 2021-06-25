@@ -2,6 +2,7 @@ package cn.edu.thssdb.query;
 
 import cn.edu.thssdb.parser.statement.*;
 import cn.edu.thssdb.schema.Column;
+import cn.edu.thssdb.schema.Entry;
 import cn.edu.thssdb.schema.Row;
 import cn.edu.thssdb.schema.Table;
 import cn.edu.thssdb.utils.Cell;
@@ -182,7 +183,14 @@ public class QueryResult {
         for (Row row: selectedRows) {
             StringJoiner values = new StringJoiner(" | ");
             for(int idx: inxList) {
-                values.add(row.getEntries().get(idx).toString());
+                Entry entry = row.getEntries().get(idx);
+                if(entry.value!=null) {
+                    values.add(entry.toString());
+                }
+                else {
+                    values.add("null");
+                }
+
             }
             joiner.add(values.toString());
         }

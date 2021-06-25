@@ -93,8 +93,8 @@ public class IServiceHandler implements IService.Iface {
         String[] elements = statement.split(" ");
         int numElem = elements.length;
         try {
-            if ("ALTER".equals(elements[0])) {// 添加属性
-                if (numElem == 6 && elements[1].equals("TABLE") && elements[3].equals("ADD")) {
+            if ("ALTER".equalsIgnoreCase(elements[0])) {// 添加属性
+                if (numElem == 6 && elements[1].equalsIgnoreCase("TABLE") && elements[3].equalsIgnoreCase("ADD")) {
                     if (session.getCurrentDatabase() == null) {
                         throw new Exception("No database selected");
                     }
@@ -106,9 +106,10 @@ public class IServiceHandler implements IService.Iface {
                     }
                     table.addColumn(elements[4], elements[5], 100);
                     database.quit();
+                    status.setMsg("Alter add succeed.");
                 }
                 // 删除属性
-                else if (numElem == 5 && elements[1].equals("TABLE") && elements[3].equals("DROP")) {
+                else if (numElem == 5 && elements[1].equalsIgnoreCase("TABLE") && elements[3].equalsIgnoreCase("DROP")) {
                     if (session.getCurrentDatabase() == null) {
                         throw new Exception("No database selected");
                     }
@@ -120,9 +121,10 @@ public class IServiceHandler implements IService.Iface {
                     }
                     table.dropColumn(elements[4]);
                     database.quit();
+                    status.setMsg("Alter drop succeed.");
                 }
                 // 更改属性类型
-                else if (numElem == 6 && elements[1].equals("TABLE") && elements[3].equals("ALTER")) {
+                else if (numElem == 6 && elements[1].equalsIgnoreCase("TABLE") && elements[3].equalsIgnoreCase("ALTER")) {
                     if (session.getCurrentDatabase() == null) {
                         throw new Exception("No database selected");
                     }
@@ -134,6 +136,7 @@ public class IServiceHandler implements IService.Iface {
                     }
                     table.alterColumn(elements[4], elements[5], 100);
                     database.quit();
+                    status.setMsg("Alter alter column succeed.");
                 }
             } else {
                 SQLVisitorImple visitor = new SQLVisitorImple(databaseManager, session);
