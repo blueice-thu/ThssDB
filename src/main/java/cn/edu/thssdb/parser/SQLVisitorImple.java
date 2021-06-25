@@ -310,6 +310,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
     @Override
     public Condition visitMultiple_condition(SQLParser.Multiple_conditionContext ctx) {
+        if(ctx==null) return null;
         return visitCondition(ctx.condition());
     }
 
@@ -458,7 +459,6 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             resultColumnNameList.add(visitResult_column(columnContext));
         }
 
-        // TODO: 支持ON
         TableQuery tableQuery = visitTable_query(ctx.table_query(0));
 
         // condition
@@ -473,14 +473,18 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             tables2Query.add(database.getTable(tableQuery.tableNameLeft));
             if (tableQuery.tableNameRight != null) {
                 tables2Query.add(database.getTable(tableQuery.tableNameRight));
+                QueryResult queryResult = new QueryResult(tables2Query, tableQuery.condition);
+                return queryResult.selectQuery(resultColumnNameList, condition);
             }
-            QueryResult queryResult = new QueryResult(tables2Query);
+            else {
+                QueryResult queryResult = new QueryResult(tables2Query);
+                return queryResult.selectQuery(resultColumnNameList, condition);
+            }
 
-            return queryResult.selectQuery(resultColumnNameList, condition);
+
 
         } catch (Exception e) {
-            // TODO: Error
-            return null;
+            return e.getMessage();
         }
     }
 
