@@ -222,6 +222,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         int numValue = ctx.value_entry().size();
         try {
             currTable.getXLockWithWait(session.getSessionId());
+            session.xTables.add(currTable.getTableName());
 
             for (int i = 0; i < numValue; i++) {
                 String[] values = visitValue_entry(ctx.value_entry(i));
@@ -242,12 +243,9 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         } catch (Exception e) {
             return e.getMessage();
         } finally {
-            currTable.removeXLock(session.getSessionId());
+            if (!manager.isTransaction(session.getSessionId()))
+                currTable.removeXLock(session.getSessionId());
         }
-
-//        if (manager.isTransaction(session.getSessionId())) {
-//            manager.logger.
-//        }
 
         return "Insert succeed";
     }
@@ -269,6 +267,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
         try {
             currTable.getXLockWithWait(session.getSessionId());
+            session.xTables.add(currTable.getTableName());
 
             ArrayList<Row> removedRows;
             String dbName = session.getCurrentDatabaseName();
@@ -301,7 +300,8 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         } catch (Exception e) {
             return e.getMessage();
         } finally {
-            currTable.removeXLock(session.getSessionId());
+            if (!manager.isTransaction(session.getSessionId()))
+                currTable.removeXLock(session.getSessionId());
         }
     }
 
@@ -370,17 +370,19 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     public String visitQuit_stmt(SQLParser.Quit_stmtContext ctx) {
         ArrayList<String> dbList = manager.getDatabaseNameList();
 
-        Long sessionId = session.getSessionId();
-        if (manager.isTransaction(sessionId)) {
-            for (String tableName : manager.sessionXTables.get(sessionId)) {
-                session.getCurrentDatabase().getTable(tableName).removeXLock(sessionId);
-            }
-            for (String tableName : manager.sessionSTables.get(sessionId)) {
-                session.getCurrentDatabase().getTable(tableName).removeSLock(sessionId);
-            }
-            manager.sessionSTables.remove(sessionId);
-            manager.sessionXTables.remove(sessionId);
-        }
+//        Long sessionId = session.getSessionId();
+//        if (manager.isTransaction(sessionId)) {
+//            for (String tableName : manager.sessionXTables.get(sessionId)) {
+//                session.getCurrentDatabase().getTable(tableName).removeXLock(sessionId);
+//            }
+//            for (String tableName : manager.sessionSTables.get(sessionId)) {
+//                session.getCurrentDatabase().getTable(tableName).removeSLock(sessionId);
+//            }
+//            manager.sessionSTables.remove(sessionId);
+//            manager.sessionXTables.remove(sessionId);
+//        }
+
+        session.releaseLocks();
 
         for (String db : dbList) {
             manager.getDatabase(db).quit();
@@ -395,6 +397,8 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
         try {
             currTable.getXLockWithWait(session.getSessionId());
+            session.xTables.add(currTable.getTableName());
+            
             ArrayList<Condition> conditions = visitMultiple_condition(ctx.multiple_condition());
             QueryResult queryResult = new QueryResult(currTable);
             boolean opAnd = true;
@@ -424,7 +428,8 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             return e.getMessage();
         }
         finally {
-            currTable.removeXLock(session.getSessionId());
+            if (!manager.isTransaction(session.getSessionId()))
+                currTable.removeXLock(session.getSessionId());
         }
         return "Update succeed";
     }
@@ -474,6 +479,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
         try {
             currTable.getSLockWithWait(session.getSessionId());
+            session.sTables.add(currTable.getTableName());
 
             ArrayList<Table> tables2Query = new ArrayList<>();
             tables2Query.add(currTable);
@@ -500,7 +506,8 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         } catch (Exception e) {
             return e.getMessage();
         } finally {
-            currTable.removeSLock(session.getSessionId());
+            if (!manager.isTransaction(session.getSessionId()))
+                currTable.removeSLock(session.getSessionId());
         }
     }
 
@@ -608,28 +615,17 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             return "Already in transaction";
         }
         manager.addTransaction(session.getSessionId());
-        manager.sessionSTables.put(session.getSessionId(), new ArrayList<>());
-        manager.sessionXTables.put(session.getSessionId(), new ArrayList<>());
         return "Start transaction";
     }
 
     @Override
     public String visitCommit_stmt(SQLParser.Commit_stmtContext ctx) {
-        Long sessionId = session.getSessionId();
-        if (!manager.isTransaction(sessionId)) {
+        if (!manager.isTransaction(session.getSessionId())) {
             return "Not in transaction";
         }
+        session.releaseLocks();
         manager.logger.commitLog(session.logList, manager);
-        for (String tableName : manager.sessionXTables.get(sessionId)) {
-            session.getCurrentDatabase().getTable(tableName).removeXLock(sessionId);
-        }
-        for (String tableName : manager.sessionSTables.get(sessionId)) {
-            session.getCurrentDatabase().getTable(tableName).removeSLock(sessionId);
-        }
-        manager.sessionSTables.get(sessionId).clear();
-        manager.sessionXTables.get(sessionId).clear();
         manager.commitTransaction(session.getSessionId());
-        // T O D O: Write logs
         return "Commit successfully";
     }
 

@@ -3,7 +3,6 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.exception.DatabaseNotExistException;
 import cn.edu.thssdb.exception.WriteFileException;
 import cn.edu.thssdb.parser.statement.Statement;
-import cn.edu.thssdb.service.Session;
 import cn.edu.thssdb.utils.Global;
 
 import java.io.*;
@@ -12,14 +11,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Manager {
     private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-    public HashMap<Long, List<String>> sessionSTables = new HashMap<>();
-    public HashMap<Long, List<String>> sessionXTables = new HashMap<>();
     private HashMap<String, Database> databases = new HashMap<>();
     private final HashSet<Long> transactionSessions = new HashSet<>();
     public final Logger logger = new Logger();
 
     public Manager() throws IOException, ClassNotFoundException {
-        // TODO
         recover();
         for (Map.Entry<String, Database> databaseEntry : databases.entrySet())
             databaseEntry.getValue().recover();
@@ -31,14 +27,16 @@ public class Manager {
     }
 
     public void createDatabaseIfNotExists(String databaseName) throws IOException {
-        if (!databases.containsKey(databaseName)) {
-            Database database = new Database(databaseName);
-            // TODO
-            databases.put(databaseName, database);
-            if (!database.persist()) {
-                return;
+        try {
+            lock.writeLock().lock();
+            if (!databases.containsKey(databaseName)) {
+                Database database = new Database(databaseName);
+                databases.put(databaseName, database);
+                database.persist();
+                persist();
             }
-            persist();
+        } finally {
+            lock.writeLock().unlock();
         }
     }
 
@@ -46,7 +44,6 @@ public class Manager {
         if (!databases.containsKey(databaseName)) {
             throw new DatabaseNotExistException(databaseName);
         }
-        // TODO
         File folder = new File(Global.PERSIST_PATH + File.separator + databaseName);
         if (folder.exists() && folder.isDirectory()) {
             File[] files = folder.listFiles();
@@ -59,24 +56,35 @@ public class Manager {
             if (!folder.delete())
                 throw new WriteFileException(folder.getAbsolutePath());
         }
-        databases.remove(databaseName);
-        persist();
+
+        try {
+            lock.writeLock().lock();
+            databases.remove(databaseName);
+            persist();
+        } finally {
+            lock.writeLock().unlock();
+        }
     }
 
     public void recover() throws IOException, ClassNotFoundException {
-        String persistFilename;
+        String persistFilename = getMetaPersistFile();
         try {
-            persistFilename = getMetaPersistFile();
             ObjectInputStream objectIn = new ObjectInputStream(new FileInputStream(persistFilename));
 
             HashMap<String, Database> recoverDatabases = new HashMap<>();
-            Database database = (Database) objectIn.readObject();
-            while (database != null) {
-                if (!database.recover()) {
-                    System.err.println("Fail to load database:" + database.getName());
+
+            try {
+                lock.writeLock().lock();
+                Database database = (Database) objectIn.readObject();
+                while (database != null) {
+                    if (!database.recover()) {
+                        System.err.println("Fail to load database:" + database.getName());
+                    }
+                    recoverDatabases.put(database.getName(), database);
+                    database = (Database) objectIn.readObject();
                 }
-                recoverDatabases.put(database.getName(), database);
-                database = (Database) objectIn.readObject();
+            } finally {
+                lock.writeLock().unlock();
             }
 
             objectIn.close();
@@ -90,8 +98,13 @@ public class Manager {
         persistFilename = getMetaPersistFile();
         ObjectOutputStream objectOut = new ObjectOutputStream(new FileOutputStream(persistFilename));
 
-        for (Map.Entry<String, Database> entry : databases.entrySet()) {
-            objectOut.writeObject(entry.getValue());
+        try {
+            lock.readLock().lock();
+            for (Map.Entry<String, Database> entry : databases.entrySet()) {
+                objectOut.writeObject(entry.getValue());
+            }
+        } finally {
+            lock.readLock().unlock();
         }
 
         objectOut.writeObject(null);
@@ -100,11 +113,21 @@ public class Manager {
     }
 
     public boolean hasDatabase(String databaseName) {
-        return databases.containsKey(databaseName);
+        try {
+            lock.readLock().lock();
+            return databases.containsKey(databaseName);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     public Database getDatabase(String databaseName) {
-        return databases.getOrDefault(databaseName, null);
+        try {
+            lock.readLock().lock();
+            return databases.getOrDefault(databaseName, null);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     private String getMetaPersistFile() throws IOException {
@@ -116,8 +139,14 @@ public class Manager {
 
     public ArrayList<String> getDatabaseNameList() {
         ArrayList<String> databaseNames = new ArrayList<>();
-        for (Map.Entry<String, Database> entry : databases.entrySet()) {
-            databaseNames.add(entry.getValue().getName());
+
+        try {
+            lock.readLock().lock();
+            for (Map.Entry<String, Database> entry : databases.entrySet()) {
+                databaseNames.add(entry.getValue().getName());
+            }
+        } finally {
+            lock.readLock().unlock();
         }
         return databaseNames;
     }
