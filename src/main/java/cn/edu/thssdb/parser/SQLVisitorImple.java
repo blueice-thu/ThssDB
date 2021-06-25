@@ -206,13 +206,8 @@ public class SQLVisitorImple extends SQLBaseVisitor {
     @Override
     public String visitInsert_stmt(SQLParser.Insert_stmtContext ctx) {
         String tableName = ctx.table_name().getText().toLowerCase();
+        String dbName = session.getCurrentDatabaseName();
         Table currTable = session.getCurrentDatabase().getTable(tableName);
-
-        try {
-            currTable.getXLockWithWait(session.getSessionId());
-        } catch (Exception e) {
-            return e.getMessage();
-        }
 
         String[] columnNames = null;
         if (ctx.column_name() != null) {
@@ -224,10 +219,11 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         }
 
         int numValue = ctx.value_entry().size();
-        String dbName = session.getCurrentDatabaseName();
-        for (int i = 0; i < numValue; i++) {
-            String[] values = visitValue_entry(ctx.value_entry(i));
-            try {
+        try {
+            currTable.getXLockWithWait(session.getSessionId());
+
+            for (int i = 0; i < numValue; i++) {
+                String[] values = visitValue_entry(ctx.value_entry(i));
                 ArrayList<Row> rows = new ArrayList<>();
                 if (columnNames != null && columnNames.length>0) {
                     rows.add(currTable.insert(columnNames, values));
@@ -240,17 +236,18 @@ public class SQLVisitorImple extends SQLBaseVisitor {
                         dbName,
                         tableName,
                         rows
-                        );
-            } catch (Exception e) {
-                currTable.removeXLock(session.getSessionId());
-                return e.getMessage();
+                );
             }
-
+        } catch (Exception e) {
+            return e.getMessage();
+        } finally {
+            currTable.removeXLock(session.getSessionId());
         }
+
 //        if (manager.isTransaction(session.getSessionId())) {
 //            manager.logger.
 //        }
-        currTable.removeXLock(session.getSessionId());
+
         return "Insert succeed";
     }
 
@@ -271,11 +268,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
         try {
             currTable.getXLockWithWait(session.getSessionId());
-        } catch (Exception e) {
-            return e.getMessage();
-        }
 
-        try {
             ArrayList<Row> removedRows;
             String dbName = session.getCurrentDatabaseName();
             if (ctx.multiple_condition() == null) {
@@ -305,7 +298,6 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         } finally {
             currTable.removeXLock(session.getSessionId());
         }
-
     }
 
     @Override
@@ -388,11 +380,6 @@ public class SQLVisitorImple extends SQLBaseVisitor {
 
         try {
             currTable.getXLockWithWait(session.getSessionId());
-        } catch (Exception e) {
-            return e.getMessage();
-        }
-
-        try {
             // TODO: fix后添加logger
             Condition condition = visitMultiple_condition(ctx.multiple_condition());
             QueryResult queryResult = new QueryResult(currTable);
@@ -449,8 +436,6 @@ public class SQLVisitorImple extends SQLBaseVisitor {
      */
     @Override
     public String visitSelect_stmt(SQLParser.Select_stmtContext ctx) {
-        // TODO: Add share lock
-
         // column names
         ArrayList<ColumnFullName> resultColumnNameList = new ArrayList<>();
         List<SQLParser.Result_columnContext> columnContextList = ctx.result_column();
@@ -467,10 +452,14 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             condition = visitMultiple_condition(ctx.multiple_condition());
         }
 
+        Database database = session.getCurrentDatabase();
+        Table currTable = database.getTable(tableQuery.tableNameLeft);
+
         try {
-            Database database = session.getCurrentDatabase();
+            currTable.getSLockWithWait(session.getSessionId());
+
             ArrayList<Table> tables2Query = new ArrayList<>();
-            tables2Query.add(database.getTable(tableQuery.tableNameLeft));
+            tables2Query.add(currTable);
             if (tableQuery.tableNameRight != null) {
                 tables2Query.add(database.getTable(tableQuery.tableNameRight));
             }
@@ -479,8 +468,9 @@ public class SQLVisitorImple extends SQLBaseVisitor {
             return queryResult.selectQuery(resultColumnNameList, condition);
 
         } catch (Exception e) {
-            // TODO: Error
-            return null;
+            return e.getMessage();
+        } finally {
+            currTable.removeSLock(session.getSessionId());
         }
     }
 
@@ -622,7 +612,7 @@ public class SQLVisitorImple extends SQLBaseVisitor {
         StringJoiner joiner = new StringJoiner("\n");
         joiner.add(String.format("%-8s | %-8s | %-8s | %-8s | %-8s", "name", "type", "primary", "notNull", "maxLength"));
         for (Column column: currTable.columns) {
-            joiner.add(column.toString());
+            joiner.add(column.toFormatString());
         }
         return joiner.toString();
     }

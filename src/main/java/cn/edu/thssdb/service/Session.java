@@ -39,6 +39,8 @@ public class Session {
     }
 
     public String getCurrentDatabaseName() {
+        if (currentDatabase == null)
+            throw new NoDatabaseSelectedException();
         return currentDatabaseName;
     }
 
