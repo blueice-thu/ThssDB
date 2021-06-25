@@ -4,12 +4,17 @@ import cn.edu.thssdb.exception.NoDatabaseSelectedException;
 import cn.edu.thssdb.schema.Database;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 public class Session {
-    private long sessionId;
+    private final long sessionId;
     private Database currentDatabase;
     public ArrayList<String> logList;
     private String currentDatabaseName;
+
+    public Set<String> xTables = new HashSet<>();
+    public Set<String> sTables = new HashSet<>();
 
     Session(long sessionId) {
         this.sessionId = sessionId;
@@ -42,6 +47,13 @@ public class Session {
         if (currentDatabase == null)
             throw new NoDatabaseSelectedException();
         return currentDatabaseName;
+    }
+
+    public void releaseLocks() {
+        for (String tableName: xTables)
+            currentDatabase.getTable(tableName).removeXLock(sessionId);
+        for (String tableName: sTables)
+            currentDatabase.getTable(tableName).removeSLock(sessionId);
     }
 
 }
